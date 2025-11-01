@@ -98,34 +98,42 @@ export default function Page() {
             <div className="accordion">
               <div className="card border-0 mb-2">
                 <div className="card-header p-0">
-                  <a href="#faq1" className="collapse">What is your return policy?</a>
+                  <a href="#faq1" className="collapse">How do I place my order?</a>
                 </div>
                 <div id="faq1" className="expanded">
-                  <div className="card-body p-0 pt-2 text-grey">We accept returns for defective items within 14 days of delivery. Contact support with photos and your order number.</div>
+                  <div className="card-body p-0 pt-2 text-grey">
+                    Choose the style you love, click “Add To Cart”, and follow the checkout steps. We’ll confirm once your order is in production and send tracking details as soon as it ships.
+                  </div>
                 </div>
               </div>
               <div className="card border-0 mb-2">
                 <div className="card-header p-0">
-                  <a href="#faq2" className="collapse">Do you ship internationally?</a>
+                  <a href="#faq2" className="collapse">How long will it take to ship my order?</a>
                 </div>
                 <div id="faq2" className="expanded">
-                  <div className="card-body p-0 pt-2 text-grey">Yes, we ship worldwide. Shipping rates and times vary by destination and will be calculated at checkout.</div>
+                  <div className="card-body p-0 pt-2 text-grey">
+                    Production typically takes 0–7 business days because every item is made-to-order. Standard shipping to the United States is $6.99 and arrives in roughly 9–18 business days, so plan on 15–35 days from purchase to delivery. International orders usually require an extra 1–2 weeks of transit time.
+                  </div>
                 </div>
               </div>
               <div className="card border-0 mb-2">
                 <div className="card-header p-0">
-                  <a href="#faq3" className="collapse">How long does production take?</a>
+                  <a href="#faq3" className="collapse">My tracking number isn’t working—what should I do?</a>
                 </div>
                 <div id="faq3" className="expanded">
-                  <div className="card-body p-0 pt-2 text-grey">Most POD items are produced within 2–5 business days. High-volume or customized orders may require additional time.</div>
+                  <div className="card-body p-0 pt-2 text-grey">
+                    Tracking links may take 1–2 business days to activate in the carrier’s system. If yours still doesn’t work after that window, reach out to the carrier or contact us so we can investigate.
+                  </div>
                 </div>
               </div>
               <div className="card border-0 mb-2">
                 <div className="card-header p-0">
-                  <a href="#faq4" className="collapse">Can I change or cancel my order?</a>
+                  <a href="#faq4" className="collapse">My order is late—can you help?</a>
                 </div>
                 <div id="faq4" className="expanded">
-                  <div className="card-body p-0 pt-2 text-grey">We can modify or cancel orders only before production starts. Contact us as soon as possible with your order number.</div>
+                  <div className="card-body p-0 pt-2 text-grey">
+                    Orders usually ship within 5–10 business days. Domestic deliveries may take up to 10 business days, while international parcels can take 20. If you haven’t seen movement after those timelines, contact us with your order number for quick assistance.
+                  </div>
                 </div>
               </div>
               <div className="card border-0 mb-2">
@@ -133,16 +141,47 @@ export default function Page() {
                   <a href="#faq5" className="collapse">What payment methods do you accept?</a>
                 </div>
                 <div id="faq5" className="expanded">
-                  <div className="card-body p-0 pt-2 text-grey">We accept major credit/debit cards and popular digital wallets. For bulk orders, bank transfer is available upon request.</div>
+                  <div className="card-body p-0 pt-2 text-grey">
+                    We currently accept Visa, MasterCard, Discover, and American Express. Every transaction is protected with SSL encryption so your details remain secure.
+                  </div>
                 </div>
               </div>
               <div className="card border-0 mb-2">
                 <div className="card-header p-0">
-                  <a href="#faq6" className="collapse">How do I get bulk pricing?</a>
+                  <a href="#faq6" className="collapse">How secure is my personal information?</a>
                 </div>
                 <div id="faq6" className="expanded">
-                  <div className="card-body p-0 pt-2 text-grey">Email us your target quantities, product types, and timeline. Our team will reply with a tailored quote.</div>
+                  <div className="card-body p-0 pt-2 text-grey">
+                    We follow industry best practices to safeguard your data. Payment details are encrypted during checkout and never stored on our servers—your information is used only to complete the transaction.
+                  </div>
                 </div>
+              </div>
+            </div>
+            <div className="row gutter-lg mt-6">
+              <div className="col-md-6 mb-4">
+                <h3 className="title title-simple">Customer Support</h3>
+                <p className="mb-1 text-grey">Support Hours: Mon – Sat, 9:00 AM – 5:00 PM EST</p>
+                <p className="mb-0 text-grey">Email: <a href="mailto:support@zattcap.com">support@zattcap.com</a></p>
+              </div>
+              <div className="col-md-3 mb-4">
+                <h3 className="title title-simple">About Us</h3>
+                <ul className="list list-unstyled text-grey mb-0">
+                  <li><ALink href="/about-us">Our Story</ALink></li>
+                  <li><ALink href="/contact-us">Contact Us</ALink></li>
+                  <li><ALink href="/faqs">FAQs</ALink></li>
+                </ul>
+              </div>
+              <div className="col-md-3 mb-4">
+                <h3 className="title title-simple">Terms &amp; Policies</h3>
+                <ul className="list list-unstyled text-grey mb-0">
+                  <li><ALink href="/order-tracking">Track My Order</ALink></li>
+                  <li><ALink href="/payment-method">Payment Method</ALink></li>
+                  <li><ALink href="/payment-policy">Payment Policy</ALink></li>
+                  <li><ALink href="/return-refund-policy">Return &amp; Refund Policy</ALink></li>
+                  <li><ALink href="/shipping-policy">Shipping Policy</ALink></li>
+                  <li><ALink href="/terms-of-service">Terms Of Service</ALink></li>
+                  <li><ALink href="/privacy-policy">Privacy Policy</ALink></li>
+                </ul>
               </div>
             </div>
           </section>

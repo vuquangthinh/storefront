@@ -17,7 +17,7 @@ export default function Page() {
         </div>
       </nav>
 
-      <div className="page-header pl-4 pr-4" style={{ backgroundImage: `url( /images/page-header/contact-us.jpg )`, backgroundColor: '#3C63A4' }}>
+      <div className="page-header pl-4 pr-4" style={{ backgroundColor: '#3C63A4' }}>
         <div className="container">
           <h1 className="page-title font-weight-bold lh-1 text-white text-capitalize">Custom Service</h1>
           <p className="page-desc text-white mb-0">From concept to delivery — bulk orders, branded merch, and event apparel.</p>

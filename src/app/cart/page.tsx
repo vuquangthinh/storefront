@@ -1,88 +1,61 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ALink from "~/components/features/custom-link";
 import Quantity from "~/components/features/quantity";
 import { toDecimal } from "~/utils";
 import { useMutation, useQuery } from "@apollo/client/react";
-import { gql } from "@apollo/client";
+import { toast } from "react-toastify";
 
-const ACTIVE_ORDER = gql`
-  query ACTIVE_ORDER {
-    activeOrder {
-      id
-      code
-      currencyCode
-      subTotalWithTax
-      totalWithTax
-      shippingWithTax 
-      discounts {
-        amountWithTax
-        description
-      }
-      couponCodes
-      lines {
-        id
-        quantity
-        discountedLinePriceWithTax
-        productVariant {
-          id
-          name
-          priceWithTax
-          featuredAsset { preview }
-          product { slug }
-        }
-      }
-    }
-  }
-`;
-
-const ADJUST_ORDER_LINE = gql`
-  mutation ADJUST_ORDER_LINE($orderLineId: ID!, $quantity: Int!) {
-    adjustOrderLine(orderLineId: $orderLineId, quantity: $quantity) {
-      __typename
-      ... on Order { id }
-      ... on ErrorResult { message }
-    }
-  }
-`;
-
-const REMOVE_ORDER_LINE = gql`
-  mutation REMOVE_ORDER_LINE($orderLineId: ID!) {
-    removeOrderLine(orderLineId: $orderLineId) {
-      __typename
-      ... on Order { id }
-      ... on ErrorResult { message }
-    }
-  }
-`;
-
-const APPLY_COUPON = gql`
-  mutation APPLY_COUPON($couponCode: String!) {
-    applyCouponCode(couponCode: $couponCode) {
-      __typename
-      ... on Order { id }
-      ... on ErrorResult { message }
-    }
-  }
-`;
+import { useCart } from "@/context/cart/CartContext";
+import { APPLY_COUPON, ELIGIBLE_SHIPPING_METHODS, REMOVE_COUPON, SET_ORDER_SHIPPING_METHOD } from "@/graphql/cart";
 
 export default function CartPage() {
-  const { data, refetch } = useQuery<{ activeOrder: any }>(ACTIVE_ORDER);
-  const order = data?.activeOrder;
-
+  const { order, items, adjustLine, removeLine, refetch } = useCart();
   const [coupon, setCoupon] = useState("");
-  const [adjustLine] = useMutation(ADJUST_ORDER_LINE, { onCompleted: () => refetch() });
-  const [removeLine] = useMutation(REMOVE_ORDER_LINE, { onCompleted: () => refetch() });
-  const [applyCoupon] = useMutation(APPLY_COUPON, { onCompleted: () => refetch() });
+  const [selectedShippingId, setSelectedShippingId] = useState<string | null>(null);
 
-  const lines = order?.lines ?? [];
+  const { data: shippingData, loading: shippingLoading } = useQuery<{ eligibleShippingMethods: any[] }>(ELIGIBLE_SHIPPING_METHODS);
+  const shippingMethods = shippingData?.eligibleShippingMethods ?? [];
+
+  const [applyCouponMutation, { loading: applyingCoupon }] = useMutation(APPLY_COUPON);
+  const [removeCouponMutation, { loading: removingCoupon }] = useMutation(REMOVE_COUPON);
+  const [setShippingMethod, { loading: settingShipping }] = useMutation(SET_ORDER_SHIPPING_METHOD);
+
+  useEffect(() => {
+    const current = order?.shippingLines?.[0]?.shippingMethod?.id ?? null;
+    const onlyOption = !current && shippingMethods.length === 1 ? shippingMethods[0]?.id ?? null : current;
+    setSelectedShippingId(onlyOption);
+    if (!current && onlyOption) {
+      handleShippingChange(onlyOption);
+    }
+  }, [order?.shippingLines, shippingMethods]);
+
+  const handleShippingChange = async (shippingMethodId: string) => {
+    setSelectedShippingId(shippingMethodId);
+    try {
+      const { data } = await setShippingMethod({ variables: { shippingMethodId: [shippingMethodId] } });
+      const result = (data as any)?.setOrderShippingMethod;
+      if (result?.__typename === "Order") {
+        await refetch();
+        toast.success("Shipping updated.");
+      } else {
+        toast.error(result?.message || "Failed to update shipping.");
+      }
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to update shipping.");
+    }
+  };
 
   const subtotal = useMemo(() => {
-    return lines.reduce((sum: number, l: any) => sum + (l.discountedLinePriceWithTax || 0), 0) / 100;
-  }, [lines]);
+    return (order?.subTotalWithTax ?? 0) / 100;
+  }, [order?.subTotalWithTax]);
 
   const total = useMemo(() => {
-    return (order?.totalWithTax || 0) / 100;
+    return (order?.totalWithTax ?? 0) / 100;
+  }, [order]);
+
+  const shippingCost = useMemo(() => {
+    return (order?.shippingWithTax ?? 0) / 100;
   }, [order]);
 
   return (
@@ -90,13 +63,13 @@ export default function CartPage() {
       <div className="page-content pt-7 pb-10">
         <div className="step-by pr-4 pl-4">
           <h3 className="title title-simple title-step active"><ALink href="#">1. Shopping Cart</ALink></h3>
-          <h3 className="title title-simple title-step"><ALink href="/pages/checkout">2. Checkout</ALink></h3>
+          <h3 className="title title-simple title-step"><ALink href="/checkout">2. Checkout</ALink></h3>
           <h3 className="title title-simple title-step"><ALink href="#">3. Order Complete</ALink></h3>
         </div>
 
         <div className="container mt-7 mb-2">
           <div className="row">
-            {lines.length > 0 ? (
+            {items.length > 0 ? (
               <>
                 <div className="col-lg-8 col-md-12 pr-lg-4">
                   <table className="shop-table cart-table">
@@ -110,14 +83,13 @@ export default function CartPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {lines.map((line: any) => {
-                        const pv = line.productVariant;
-                        const unit = (pv?.priceWithTax || 0) / 100;
-                        const lineTotal = (line.discountedLinePriceWithTax || 0) / 100;
-                        const href = pv?.product?.slug ? `/product/default/${pv.product.slug}` : "#";
-                        const img = pv?.featuredAsset?.preview || "";
+                      {items.map((line) => {
+                        const href = line.productSlug ? `/product/default/${line.productSlug}` : "#";
+                        const unit = line.price;
+                        const lineTotal = line.totalWithTax;
+                        const img = line.image || "";
                         return (
-                          <tr key={line.id}>
+                          <tr key={line.lineId}>
                             <td className="product-thumbnail">
                               <figure>
                                 <ALink href={href}>
@@ -127,7 +99,7 @@ export default function CartPage() {
                             </td>
                             <td className="product-name">
                               <div className="product-name-section">
-                                <ALink href={href}>{pv?.name}</ALink>
+                                <ALink href={href}>{line.name}</ALink>
                               </div>
                             </td>
                             <td className="product-subtotal">
@@ -135,10 +107,10 @@ export default function CartPage() {
                             </td>
                             <td className="product-quantity">
                               <Quantity
-                                qty={Number(line.quantity) || 0}
+                                qty={Number(line.qty) || 0}
                                 max={100}
                                 onChangeQty={(q: number) => {
-                                  adjustLine({ variables: { orderLineId: line.id, quantity: q } });
+                                  adjustLine(line.lineId, q);
                                 }}
                               />
                             </td>
@@ -146,7 +118,7 @@ export default function CartPage() {
                               <span className="amount">${toDecimal(lineTotal)}</span>
                             </td>
                             <td className="product-close">
-                              <ALink href="#" className="product-remove" title="Remove this product" onClick={() => removeLine({ variables: { orderLineId: line.id } })}>
+                              <ALink href="#" className="product-remove" title="Remove this product" onClick={() => removeLine(line.lineId)}>
                                 <i className="fas fa-times"></i>
                               </ALink>
                             </td>
@@ -158,7 +130,15 @@ export default function CartPage() {
 
                   <div className="cart-actions mb-6 pt-4">
                     <ALink href="/products" className="btn btn-dark btn-md btn-rounded btn-icon-left mr-4 mb-4"><i className="d-icon-arrow-left"></i>Continue Shopping</ALink>
-                    <button type="button" className={"btn btn-outline btn-dark btn-md btn-rounded btn-disabled"}>
+                    <button
+                      type="button"
+                      className={`btn btn-outline btn-dark btn-md btn-rounded${order ? "" : " btn-disabled"}`}
+                      disabled={!order}
+                      onClick={async () => {
+                        await refetch();
+                        toast.info("Cart refreshed.");
+                      }}
+                    >
                       Update Cart
                     </button>
                   </div>
@@ -174,7 +154,68 @@ export default function CartPage() {
                       value={coupon}
                       onChange={(e) => setCoupon(e.target.value)}
                     />
-                    <button type="button" className="btn btn-md btn-dark btn-rounded btn-outline" onClick={() => coupon && applyCoupon({ variables: { couponCode: coupon } })}>Apply Coupon</button>
+                    <button
+                      type="button"
+                      className="btn btn-md btn-dark btn-rounded btn-outline"
+                      disabled={!coupon || applyingCoupon}
+                      onClick={async () => {
+                        if (!coupon) return;
+                        try {
+                          const { data } = await applyCouponMutation({ variables: { couponCode: coupon } });
+                          const result = (data as any)?.applyCouponCode;
+                          if (result?.__typename === "Order") {
+                            await refetch();
+                            toast.success("Coupon applied.");
+                            setCoupon("");
+                          } else {
+                            toast.error(result?.message || "Coupon invalid.");
+                          }
+                        } catch (error: any) {
+                          toast.error(error?.message || "Failed to apply coupon.");
+                        }
+                      }}
+                    >
+                      {applyingCoupon ? "Applying..." : "Apply Coupon"}
+                    </button>
+                    {order?.couponCodes?.length ? (
+                      <div className="applied-coupons mt-8">
+                        <h5 className="title title-simple text-left mb-2">Applied Coupons</h5>
+                        <ul className="list-unstyled mb-0 p-0">
+                          {order.couponCodes.map((code: string) => (
+                            <li className="btn btn-primary btn-sm btn-rounded mr-2 mb-2" key={code}>
+                              <span className="font-weight-semi-bold">{code}</span>
+                              <button
+                                type="button"
+                                className="btn btn-rounded btn-secondary btn-md text-danger ml-2"
+                                disabled={removingCoupon}
+                                style={{
+                                  paddingTop: 3,
+                                  paddingBottom: 3,
+                                  paddingLeft: 6,
+                                  paddingRight: 6
+                                }}
+                                onClick={async () => {
+                                  try {
+                                    const { data } = await removeCouponMutation({ variables: { couponCode: code } });
+                                    const result = (data as any)?.removeCouponCode;
+                                    if (result?.__typename === "Order") {
+                                      await refetch();
+                                      toast.info(`Coupon '${code}' removed.`);
+                                    } else {
+                                      toast.error(result?.message || "Unable to remove coupon.");
+                                    }
+                                  } catch (error: any) {
+                                    toast.error(error?.message || "Unable to remove coupon.");
+                                  }
+                                }}
+                              >
+                                {removingCoupon ? "..." : "×"}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
@@ -190,33 +231,48 @@ export default function CartPage() {
                           </tr>
                           <tr className="sumnary-shipping shipping-row-last">
                             <td colSpan={2}>
-                              <h4 className="summary-subtitle">Calculate Shipping</h4>
+                              <h4 className="summary-subtitle">Shipping Method</h4>
                               <ul>
-                                <li>
-                                  <div className="custom-radio">
-                                    <input type="radio" id="flat_rate" name="shipping" className="custom-control-input" defaultChecked />
-                                    <label className="custom-control-label" htmlFor="flat_rate">Flat rate</label>
-                                  </div>
-                                </li>
-                                <li>
-                                  <div className="custom-radio">
-                                    <input type="radio" id="free-shipping" name="shipping" className="custom-control-input" />
-                                    <label className="custom-control-label" htmlFor="free-shipping">Free shipping</label>
-                                  </div>
-                                </li>
-                                <li>
-                                  <div className="custom-radio">
-                                    <input type="radio" id="local_pickup" name="shipping" className="custom-control-input" />
-                                    <label className="custom-control-label" htmlFor="local_pickup">Local pickup</label>
-                                  </div>
-                                </li>
+                                {shippingLoading ? (
+                                  <li className="text-grey">Loading shipping methods…</li>
+                                ) : shippingMethods.length > 0 ? (
+                                  shippingMethods.map((method: any) => {
+                                    const methodId = method.id;
+                                    const priceValue = (method.priceWithTax ?? method.price ?? 0) / 100;
+                                    const inputId = `shipping-${methodId}`;
+                                    const checked = selectedShippingId ? selectedShippingId === methodId : false;
+                                    return (
+                                      <li key={methodId}>
+                                        <div className="custom-radio">
+                                          <input
+                                            type="radio"
+                                            id={inputId}
+                                            name="shipping"
+                                            className="custom-control-input"
+                                            checked={checked}
+                                            onChange={() => handleShippingChange(methodId)}
+                                            disabled={settingShipping}
+                                          />
+                                          <label className="custom-control-label" htmlFor={inputId}>
+                                            {method.name}
+                                            <span className="ml-2 text-grey">
+                                              ({priceValue === 0 ? "Free" : `$${toDecimal(priceValue)}`})
+                                            </span>
+                                          </label>
+                                        </div>
+                                      </li>
+                                    );
+                                  })
+                                ) : (
+                                  <li className="text-grey">No shipping methods available.</li>
+                                )}
                               </ul>
                             </td>
                           </tr>
                         </tbody>
                       </table>
 
-                      <div className="shipping-address">
+                      {/* <div className="shipping-address">
                         <label>Shipping to <strong>CA.</strong></label>
                         <div className="select-box">
                           <select name="country" className="form-control" defaultValue="us">
@@ -237,10 +293,14 @@ export default function CartPage() {
                         <input type="text" className="form-control" name="city" placeholder="Town / City" />
                         <input type="text" className="form-control" name="zip" placeholder="ZIP" />
                         <ALink href="#" className="btn btn-md btn-dark btn-rounded btn-outline">Update totals</ALink>
-                      </div>
+                      </div> */}
 
                       <table className="total">
                         <tbody>
+                          <tr className="summary-shipping-total">
+                            <td><h4 className="summary-subtitle">Shipping</h4></td>
+                            <td><p className="summary-subtotal-price">${toDecimal(shippingCost)}</p></td>
+                          </tr>
                           <tr className="summary-subtotal">
                             <td><h4 className="summary-subtitle">Total</h4></td>
                             <td><p className="summary-total-price ls-s">${toDecimal(total)}</p></td>
@@ -248,7 +308,7 @@ export default function CartPage() {
                         </tbody>
                       </table>
 
-                      <ALink href="/pages/checkout" className="btn btn-dark btn-rounded btn-checkout">Proceed to checkout</ALink>
+                      <ALink href="/checkout" className="btn btn-dark btn-rounded btn-checkout">Proceed to checkout</ALink>
                     </div>
                   </div>
                 </aside>

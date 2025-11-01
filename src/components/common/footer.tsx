@@ -60,19 +60,19 @@ export default function Footer () {
                                 <h4 className="widget-title">About Us</h4>
                                 <ul className="widget-body">
                                     <li>
-                                        <ALink href="/pages/about-us">About Us</ALink>
+                                        <ALink href="/about-us">About Us</ALink>
                                     </li>
                                     <li>
                                         <ALink href="#">Order History</ALink>
                                     </li>
                                     <li>
-                                        <ALink href="/pages/returns">Returns</ALink>
+                                        <ALink href="/returns">Returns</ALink>
                                     </li>
                                     <li>
-                                        <ALink href="/pages/custom-service">Custom Service</ALink>
+                                        <ALink href="/custom-service">Custom Service</ALink>
                                     </li>
                                     <li>
-                                        <ALink href="/pages/terms">Terms &amp; Conditions</ALink>
+                                        <ALink href="/terms-of-service">Terms &amp; Conditions</ALink>
                                     </li>
                                 </ul>
                             </div>
@@ -81,9 +81,6 @@ export default function Footer () {
                             <div className="widget ml-lg-4">
                                 <h4 className="widget-title">My Account</h4>
                                 <ul className="widget-body">
-                                    <li>
-                                        <ALink href="#">Sign in</ALink>
-                                    </li>
                                     <li>
                                         <ALink href="/cart">View Cart</ALink>
                                     </li>

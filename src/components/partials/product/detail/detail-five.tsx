@@ -28,7 +28,7 @@ function DetailOne(props: any) {
     const [curSize, setCurSize] = useState('null');
     const [curIndex, setCurIndex] = useState(0);
     const [cartActive, setCartActive] = useState(false);
-    const [quantity, setQauntity] = useState(1);
+    const [quantity, setQuantity] = useState(1);
     let product = data && data.product;
 
     // decide if the product is wishlisted
@@ -111,25 +111,30 @@ function DetailOne(props: any) {
     }
 
     const addToCartHandler = () => {
-        if (product.data.stock > 0 && cartActive) {
-            if (product.data.variants.length > 0) {
-                let tmpName = product.data.name, tmpPrice;
-                tmpName += curColor !== 'null' ? '-' + curColor : '';
-                tmpName += curSize !== 'null' ? '-' + curSize : '';
+        if (product.data.stock <= 0 || !cartActive) return;
 
-                if (product.data.price[0] === product.data.price[1]) {
-                    tmpPrice = product.data.price[0];
-                } else if (!product.data.variants[0].price && product.data.discount > 0) {
-                    tmpPrice = product.data.price[0];
-                } else {
-                    tmpPrice = product.data.variants[curIndex].sale_price ? product.data.variants[curIndex].sale_price : product.data.variants[curIndex].price;
-                }
+        const variants = product.data.variants || [];
+        const variant = variants.length > 0 ? (curIndex > -1 ? variants[curIndex] : variants[0]) : undefined;
+        const variantId = variant?.id;
 
-                addToCart({ ...product.data, name: tmpName, qty: quantity, price: tmpPrice });
-            } else {
-                addToCart({ ...product.data, qty: quantity, price: product.data.price[0] });
-            }
-        }
+        let displayName = product.data.name;
+        if (curColor !== 'null') displayName += '-' + curColor;
+        if (curSize !== 'null') displayName += '-' + curSize;
+
+        const price = variant?.sale_price ?? variant?.price ?? product.data.price[0];
+        const image = variant?.pictures?.[0]?.url || product.data.pictures?.[0]?.url || null;
+
+        addToCart({
+            productVariantId: variantId,
+            quantity,
+            product: {
+                slug: product.data.slug,
+                name: displayName,
+                price,
+                pictures: product.data.pictures,
+                image,
+            },
+        });
     }
 
     const resetValueHandler = () => {
@@ -152,7 +157,7 @@ function DetailOne(props: any) {
     }
 
     function changeQty(qty: number) {
-        setQauntity(qty);
+        setQuantity(qty);
     }
 
     return (

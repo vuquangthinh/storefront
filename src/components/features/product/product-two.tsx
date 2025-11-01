@@ -43,7 +43,24 @@ function ProductTwo ( props: ProductTwoProps ) {
 
     const addToCartHandler = ( e: React.MouseEvent<HTMLAnchorElement> ) => {
         e.preventDefault();
-        addToCart( { ...product, qty: 1, price: product.price[ 0 ] } );
+        const variantId = product?.productVariantId
+            || product?.defaultVariant?.id
+            || product?.variant?.id
+            || (Array.isArray(product?.variants) ? product.variants[0]?.id : undefined);
+        const basePrice = Array.isArray(product.price) ? product.price[0] : product.price;
+        const image = product.pictures?.[0]?.url || product.featuredAsset?.preview || null;
+
+        addToCart({
+            productVariantId: variantId,
+            quantity: 1,
+            product: {
+                slug: product.slug,
+                name: product.name,
+                price: basePrice,
+                pictures: product.pictures,
+                image,
+            },
+        });
     }
 
     return (

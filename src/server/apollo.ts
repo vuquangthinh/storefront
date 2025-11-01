@@ -41,7 +41,7 @@ const mockLink = new ApolloLink((operation) => {
 
 const link = isMock
   ? mockLink
-  : new HttpLink({ uri: API_URI, credentials: 'same-origin' });
+  : new HttpLink({ uri: API_URI, credentials: 'include' });
 
 export const client = new ApolloClient({
   link,

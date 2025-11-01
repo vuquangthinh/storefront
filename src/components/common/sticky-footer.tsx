@@ -104,11 +104,11 @@ export default function StickyFooter() {
                 <i className="d-icon-volume"></i>
                 <span>Categories</span>
             </ALink>
-            <ALink href="/pages/wishlist" className="sticky-link">
+            <ALink href="/wishlist" className="sticky-link">
                 <i className="d-icon-heart"></i>
                 <span>Wishlist</span>
             </ALink>
-            <ALink href="/pages/account" className="sticky-link">
+            <ALink href="/account" className="sticky-link">
                 <i className="d-icon-user"></i>
                 <span>Account</span>
             </ALink>

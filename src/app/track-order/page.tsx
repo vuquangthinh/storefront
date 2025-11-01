@@ -18,14 +18,14 @@ export default function Page() {
         </div>
       </nav>
 
-      <div className="page-header pl-4 pr-4" style={{ backgroundImage: `url( /images/page-header/contact-us.jpg )`, backgroundColor: '#3C63A4' }}>
+      <div className="page-header pl-4 pr-4" style={{ backgroundColor: '#3C63A4' }}>
         <div className="container">
           <h1 className="page-title font-weight-bold lh-1 text-white text-capitalize">Track My Order</h1>
           <p className="page-desc text-white mb-0">Enter your order number and email to see the latest status.</p>
         </div>
       </div>
 
-      <div className="page-content mt-10 pt-10">
+      <div className="page-content mt-10 pt-10 pb-10">
         <div className="container">
           <section>
             <h2>Order Lookup</h2>
@@ -44,7 +44,7 @@ export default function Page() {
             </form>
             <p className="mt-4 text-grey">For carrier tracking, please allow up to 24–48 hours after shipment for updates to appear.</p>
           </section>
-          <p className="mt-6">Need assistance? <ALink href="/pages/contact-us">Contact Us</ALink>.</p>
+          <p className="mt-6">Need assistance? <ALink href="/contact-us">Contact Us</ALink>.</p>
         </div>
       </div>
     </main>

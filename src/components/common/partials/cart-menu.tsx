@@ -4,7 +4,7 @@ import { useCart } from '@/context/cart/CartContext';
 import { getTotalPrice, getCartCount, toDecimal } from '~/utils';
 
 function CartMenu() {
-    const { items: cartList, removeFromCart } = useCart();
+    const { items: cartList, removeLine } = useCart();
 
     const showCartMenu = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
@@ -17,7 +17,9 @@ function CartMenu() {
     }
 
     const removeCart = (item: any) => {
-        removeFromCart(item);
+        if (item?.lineId) {
+            removeLine(item.lineId);
+        }
     }
 
     return (
@@ -44,8 +46,8 @@ function CartMenu() {
                                     cartList.map((item: any, index: number) =>
                                         <div className="product product-cart" key={'cart-menu-product-' + index}>
                                             <figure className="product-media pure-media">
-                                                <ALink href={'/products/' + item.slug} onClick={hideCartMenu}>
-                                                    <img src={item.pictures[0].url} alt="product" width="80"
+                                                <ALink href={'/products/' + (item.productSlug || '')} onClick={hideCartMenu}>
+                                                    <img src={item.image || '/images/product-placeholder.png'} alt="product" width="80"
                                                         height="88" />
                                                 </ALink>
                                                 <button className="btn btn-link btn-close" onClick={() => { removeCart(item) }}>
@@ -53,7 +55,7 @@ function CartMenu() {
                                                 </button>
                                             </figure>
                                             <div className="product-detail">
-                                                <ALink href={'/products/' + item.slug} className="product-name" onClick={hideCartMenu}>{item.name}</ALink>
+                                                <ALink href={'/products/' + (item.productSlug || '')} className="product-name" onClick={hideCartMenu}>{item.name}</ALink>
                                                 <div className="price-box">
                                                     <span className="product-quantity">{item.qty}</span>
                                                     <span className="product-price">${toDecimal(item.price)}</span>
@@ -70,8 +72,8 @@ function CartMenu() {
                             </div>
 
                             <div className="cart-action">
-                                <ALink href="/pages/cart" className="btn btn-dark btn-link" onClick={hideCartMenu}>View Cart</ALink>
-                                <ALink href="/pages/checkout" className="btn btn-dark" onClick={hideCartMenu}><span>Go To Checkout</span></ALink>
+                                <ALink href="/cart" className="btn btn-dark btn-link" onClick={hideCartMenu}>View Cart</ALink>
+                                <ALink href="/checkout" className="btn btn-dark" onClick={hideCartMenu}><span>Go To Checkout</span></ALink>
                             </div>
                         </> :
                         <p className="mt-4 text-center font-weight-semi-bold ls-normal text-body">No products in the cart.</p>

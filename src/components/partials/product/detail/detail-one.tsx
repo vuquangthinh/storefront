@@ -138,7 +138,7 @@ const DetailOne: React.FC<DetailOneProps> = ({
         currentTarget.classList.remove('load-more-overlay', 'loading');
       }, 1000);
     } else {
-      router.push('/pages/wishlist');
+      router.push('/wishlist');
     }
   };
 
@@ -177,21 +177,31 @@ const DetailOne: React.FC<DetailOneProps> = ({
 
   // add to cart
   const addToCartHandler = () => {
-    if (productData.stock > 0 && cartActive) {
-      if (productData.variants.length > 0 && curIndex > -1) {
-        const variant = productData.variants[curIndex];
-        let name = productData.name;
-        let price: number =
-          variant.sale_price ?? variant.price ?? productData.price[0];
+    if (!cartActive || productData.stock <= 0) return;
 
-        if (curColor !== 'null') name += `-${curColor}`;
-        if (curSize !== 'null') name += `-${curSize}`;
+    const variants = productData.variants || [];
+    const variant = variants.length > 0
+      ? (curIndex > -1 ? variants[curIndex] : variants[0])
+      : undefined;
 
-        addToCart({ ...productData, name, qty: quantity, price });
-      } else {
-        addToCart({ ...productData, qty: quantity, price: productData.price[0] });
-      }
-    }
+    const variantId = variant?.id;
+    const basePrice = variant?.sale_price ?? variant?.price ?? productData.price[0];
+
+    let displayName = productData.name;
+    if (curColor !== 'null') displayName += `-${curColor}`;
+    if (curSize !== 'null') displayName += `-${curSize}`;
+
+    addToCart({
+      productVariantId: variantId,
+      quantity,
+      product: {
+        slug: productData.slug,
+        name: displayName,
+        price: basePrice,
+        pictures: productData.pictures,
+        image: variant?.pictures?.[0]?.url ?? productData.pictures?.[0]?.url ?? null,
+      },
+    });
   };
 
   // ---------- JSX ----------

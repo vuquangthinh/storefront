@@ -89,7 +89,7 @@ function DetailOne ( props: any ) {
                 currentTarget.classList.remove( 'load-more-overlay', 'loading' );
             }, 1000 );
         } else {
-            router.push( '/pages/wishlist' );
+            router.push( '/wishlist' );
         }
     }
 
@@ -114,27 +114,30 @@ function DetailOne ( props: any ) {
     }
 
     const addToCartHandler = () => {
-        if ( product.data.stock > 0 ) {
-            const qty = quantity;
+        if (product.data.stock <= 0 || !cartActive) return;
 
-            if ( product.data.variants.length > 0 ) {
-                let tmpName = product.data.name, tmpPrice;
-                tmpName += curColor !== 'null' ? '-' + curColor : '';
-                tmpName += curSize !== 'null' ? '-' + curSize : '';
+        const variants = product.data.variants || [];
+        const variant = variants.length > 0 ? (curIndex > -1 ? variants[curIndex] : variants[0]) : undefined;
+        const variantId = variant?.id;
 
-                if ( product.data.price[ 0 ] === product.data.price[ 1 ] ) {
-                    tmpPrice = product.data.price[ 0 ];
-                } else if ( !product.data.variants[ 0 ].price && product.data.discount > 0 ) {
-                    tmpPrice = product.data.price[ 0 ];
-                } else {
-                    tmpPrice = product.data.variants[ curIndex ].sale_price ? product.data.variants[ curIndex ].sale_price : product.data.variants[ curIndex ].price;
-                }
+        let displayName = product.data.name;
+        if (curColor !== 'null') displayName += '-' + curColor;
+        if (curSize !== 'null') displayName += '-' + curSize;
 
-                addToCart( { ...product.data, name: tmpName, qty: qty, price: tmpPrice } );
-            } else {
-                addToCart( { ...product.data, qty: qty, price: product.data.price[ 0 ] } );
-            }
-        }
+        const price = variant?.sale_price ?? variant?.price ?? product.data.price[0];
+        const image = variant?.pictures?.[0]?.url || product.data.pictures?.[0]?.url || null;
+
+        addToCart({
+            productVariantId: variantId,
+            quantity,
+            product: {
+                slug: product.data.slug,
+                name: displayName,
+                price,
+                pictures: product.data.pictures,
+                image,
+            },
+        });
     }
 
     const resetValueHandler = () => {

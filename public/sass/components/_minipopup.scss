@@ -16,13 +16,13 @@
 );
 
 .minipopup-area {
-    // position: fixed;
+    position: fixed;
     @include print_css( minipopup, area );
 }
 .minipopup-box {
     // position: absolute;
     left: -8rem;
-    width: 303px;
+    width: 503px;
     padding: 2rem;
     background-color: #fff;
     box-shadow: 0 5px 20px rgba(0,0,0,.1);

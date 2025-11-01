@@ -16,7 +16,7 @@
 /* 1. config */
 @import '../../config/variables';
 
-$primary-color: #2266cc;
+$primary-color: $primary-color;
 
 /* 2. mixins */
 @import '../../mixins/breakpoints';

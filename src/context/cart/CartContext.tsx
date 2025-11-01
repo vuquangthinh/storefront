@@ -1,74 +1,173 @@
 "use client";
-import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
+import React, { ReactNode, createContext, useCallback, useContext } from "react";
 import { toast } from "react-toastify";
+import { useMutation } from "@apollo/client/react";
 
 import CartPopup from "~/components/features/product/common/cart-popup";
+import {
+  ACTIVE_ORDER,
+  ADD_ITEM_TO_ORDER,
+  ADJUST_ORDER_LINE,
+  REMOVE_ALL_ORDER_LINES,
+  REMOVE_ORDER_LINE,
+} from "@/graphql/cart";
+import { useActiveOrder } from "@/hooks/use-active-order";
 
 export type CartItem = {
+  lineId: string;
+  productVariantId: string;
+  productSlug?: string;
+  image?: string | null;
   name: string;
-  slug?: string;
   qty: number;
-  price?: number;
-  [key: string]: any;
+  price: number;
+  totalWithTax: number;
+  variant?: any;
 };
 
 export type CartContextType = {
+  order: any | null;
   items: CartItem[];
-  addToCart: (product: CartItem) => void;
-  removeFromCart: (product: CartItem) => void;
-  updateCart: (products: CartItem[]) => void;
+  isLoading: boolean;
+  addToCart: (input: { productVariantId?: string; quantity?: number; product?: any }) => Promise<void>;
+  adjustLine: (lineId: string, quantity: number) => Promise<void>;
+  removeLine: (lineId: string) => Promise<void>;
+  clearCart: () => Promise<void>;
+  refetch: () => Promise<void>;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const STORAGE_KEY = "riode-cart";
-
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const { order, refetch, loading } = useActiveOrder();
+  const [addItemToOrder] = useMutation<{ addItemToOrder: any }, { productVariantId: string; quantity: number }>(
+    ADD_ITEM_TO_ORDER,
+    { refetchQueries: [{ query: ACTIVE_ORDER }], awaitRefetchQueries: true }
+  );
+  const [adjustOrderLine] = useMutation<{ adjustOrderLine: any }, { orderLineId: string; quantity: number }>(
+    ADJUST_ORDER_LINE,
+    { refetchQueries: [{ query: ACTIVE_ORDER }], awaitRefetchQueries: true }
+  );
+  const [removeOrderLine] = useMutation<{ removeOrderLine: any }, { orderLineId: string }>(
+    REMOVE_ORDER_LINE,
+    { refetchQueries: [{ query: ACTIVE_ORDER }], awaitRefetchQueries: true }
+  );
+  const [removeAllOrderLines] = useMutation<{ removeAllOrderLines: any }>(REMOVE_ALL_ORDER_LINES, {
+    refetchQueries: [{ query: ACTIVE_ORDER }],
+    awaitRefetchQueries: true,
+  });
 
-  useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
-      if (raw) setItems(JSON.parse(raw));
-    } catch {}
-  }, []);
+  const assetHost = process.env.NEXT_PUBLIC_ASSET_URI ?? "";
+  const resolveAssetUrl = (url?: string | null): string | null => {
+    if (!url) return null;
+    if (/^https?:\/\//i.test(url)) return url;
+    return `${url}`;
+  };
 
-  useEffect(() => {
-    try {
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  const items: CartItem[] = (order?.lines ?? []).map((line: any) => ({
+    lineId: line.id,
+    productVariantId: line.productVariant?.id,
+    productSlug: line.productVariant?.product?.slug,
+    image: resolveAssetUrl(line.productVariant?.featuredAsset?.preview ?? null),
+    name: line.productVariant?.name ?? "",
+    qty: Number(line.quantity) || 0,
+    price: (line.productVariant?.priceWithTax ?? 0) / 100,
+    totalWithTax: (line.discountedLinePriceWithTax ?? 0) / 100,
+    variant: line.productVariant,
+  }));
+
+  const resolveVariantId = (input: { productVariantId?: string; product?: any }): string | undefined => {
+    if (input.productVariantId) return input.productVariantId;
+    const p = input.product;
+    if (!p) return undefined;
+    const candidates = [
+      p.productVariantId,
+      p.defaultVariantId,
+      p.defaultVariant?.id,
+      p.variantId,
+      p.variant?.id,
+      Array.isArray(p.variants) && p.variants[0]?.id,
+      p.data?.productVariantId,
+      p.data?.defaultVariantId,
+      Array.isArray(p.data?.variants) && p.data?.variants[0]?.id,
+      p.variant?.productVariantId,
+    ];
+    return candidates.find((id) => typeof id === "string" && id.length > 0);
+  };
+
+  const handleAddToCart = useCallback(
+    async ({ productVariantId, quantity = 1, product }: { productVariantId?: string; quantity?: number; product?: any }) => {
+      const resolvedVariantId = resolveVariantId({ productVariantId, product });
+      if (!resolvedVariantId) {
+        toast.error("Unable to add item to cart. Variant not available.");
+        return;
       }
-    } catch {}
-  }, [items]);
-
-  const api = useMemo<CartContextType>(() => ({
-    items,
-    addToCart: (product: CartItem) => {
-      setItems((prev) => {
-        const idx = prev.findIndex((p) => p.name === product.name);
-        if (idx > -1) {
-          const next = [...prev];
-          const curQty = parseInt(String(next[idx].qty));
-          const addQty = parseInt(String(product.qty));
-          next[idx] = { ...next[idx], qty: curQty + addQty };
-          return next;
+      const result = await addItemToOrder({ variables: { productVariantId: resolvedVariantId, quantity } });
+      const payload = (result.data as { addItemToOrder?: any } | undefined)?.addItemToOrder;
+      if (payload?.__typename === "ErrorResult" || payload?.__typename === "InsufficientStockError") {
+        toast.error(payload?.message || "Unable to add item to cart.");
+        return;
+      }
+      await refetch();
+      toast(
+        <CartPopup
+          product={{
+            ...(product || {}),
+            qty: quantity,
+          }}
+        />,
+        {
+          className: "cart-toast",
+          bodyClassName: "cart-toast-body",
+          closeButton: false,
+          icon: false,
         }
-        return [...prev, { ...product }];
-      });
-      toast.success(<CartPopup product={product} />, {
-        className: "cart-toast",
-        bodyClassName: "cart-toast-body",
-        closeButton: false,
-        icon: false,
-      });
+      );
     },
-    removeFromCart: (product: CartItem) => {
-      setItems((prev) => prev.filter((p) => p.name !== product.name));
-    },
-    updateCart: (products: CartItem[]) => setItems(products),
-  }), [items]);
+    [addItemToOrder, refetch]
+  );
 
-  return <CartContext.Provider value={api}>{children}</CartContext.Provider>;
+  const handleAdjustLine = useCallback(
+    async (lineId: string, quantity: number) => {
+      if (!lineId) return;
+      if (quantity <= 0) {
+        await removeOrderLine({ variables: { orderLineId: lineId } });
+      } else {
+        await adjustOrderLine({ variables: { orderLineId: lineId, quantity } });
+      }
+      await refetch();
+    },
+    [adjustOrderLine, removeOrderLine, refetch]
+  );
+
+  const handleRemoveLine = useCallback(
+    async (lineId: string) => {
+      if (!lineId) return;
+      await removeOrderLine({ variables: { orderLineId: lineId } });
+      await refetch();
+    },
+    [removeOrderLine, refetch]
+  );
+
+  const handleClearCart = useCallback(async () => {
+    await removeAllOrderLines();
+    await refetch();
+  }, [removeAllOrderLines, refetch]);
+
+  const contextValue: CartContextType = {
+    order: order ?? null,
+    items,
+    isLoading: loading,
+    addToCart: handleAddToCart,
+    adjustLine: handleAdjustLine,
+    removeLine: handleRemoveLine,
+    clearCart: handleClearCart,
+    refetch: async () => {
+      await refetch();
+    },
+  };
+
+  return <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>;
 }
 
 export function useCart(): CartContextType {

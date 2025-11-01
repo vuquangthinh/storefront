@@ -53,7 +53,7 @@ Demo 23
 	padding: 1.6rem 1.3rem;
 
 	&:hover {
-		background-color: #2266cc;
+		background-color: $primary-color;
 		color: #fff;
 	}
 }
@@ -109,7 +109,7 @@ Demo 23
 	transition: background-color .3s;
 	&.active,
 	&:hover {
-		background-color: #2266cc;
+		background-color: $primary-color;
 	}
 	> a {
 		white-space: nowrap;

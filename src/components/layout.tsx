@@ -33,7 +33,7 @@ function Layout ( { children }: { children: React.ReactNode } ) {
 
             <ALink id="scroll-top" href="#" title="Top" role="button" className="scroll-top" onClick={ () => scrollTopHandler( false ) }><i className="d-icon-arrow-up"></i></ALink>
 
-            {/* <MobileMenu /> */}
+            <MobileMenu />
 
             <ToastContainer
                 autoClose={ 3000 }

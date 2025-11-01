@@ -311,6 +311,22 @@ export const getCartCount = cartItems => {
 /**
  * utils to show number to n places of decimals
  */
-export const toDecimal = ( price, fixedCount = 2 ) => {
-    return price.toLocaleString( undefined, { minimumFractionDigits: fixedCount, maximumFractionDigits: fixedCount } );
-}
+export const toDecimal = (price: number | string, fixedCount = 2) => {
+    if (price === null || typeof price === 'undefined') {
+        return Number(0).toLocaleString(undefined, { minimumFractionDigits: fixedCount, maximumFractionDigits: fixedCount });
+    }
+
+    let numeric = typeof price === 'string' ? parseFloat(price) : price;
+
+    if (!Number.isFinite(numeric)) {
+        numeric = 0;
+    }
+
+    const needsMinorUnitConversion = Number.isInteger(numeric) && Math.abs(numeric) >= 100;
+    const normalized = needsMinorUnitConversion ? numeric / 100 : numeric;
+
+    return normalized.toLocaleString(undefined, {
+        minimumFractionDigits: fixedCount,
+        maximumFractionDigits: fixedCount,
+    });
+};

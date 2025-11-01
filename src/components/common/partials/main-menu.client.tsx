@@ -5,15 +5,14 @@ import React from 'react';
 type VendureCollection = { id: string; name: string; slug: string };
 
 function MainMenuClient({ collections, error }: { collections: VendureCollection[]; error?: boolean }) {
-  const pathname = ''; // = usePathname();
   return (
     <nav className="main-nav ml-0">
       <ul className="menu">
-        <li id="menu-home" className={pathname === '/' ? 'active' : ''}>
+        <li id="menu-home">
           <ALink href='/'>Home</ALink>
         </li>
 
-        <li className={`submenu  ${(pathname.includes('/products') || pathname.startsWith('/categories')) ? 'active' : ''}`}>
+        <li className="submenu">
           <ALink href='/products'>Categories</ALink>
 
           <div className="megamenu">
@@ -61,7 +60,7 @@ function MainMenuClient({ collections, error }: { collections: VendureCollection
         </li>
 
         <li>
-          <ALink href="/pages/about-us">About Us</ALink>
+          <ALink href="/about-us">About Us</ALink>
         </li>
       </ul>
     </nav>

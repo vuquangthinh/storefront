@@ -19,14 +19,14 @@ export const metadata = {
 export default function Page() {
   return (
     <main className="main">
-      {/* <nav className="breadcrumb-nav">
+      <nav className="breadcrumb-nav">
         <div className="container">
           <ul className="breadcrumb">
             <li><ALink href="/"><i className="d-icon-home"></i></ALink></li>
             <li>About Us</li>
           </ul>
         </div>
-      </nav> */}
+      </nav>
       <div className="page-header pl-4 pr-4" style={{ backgroundColor: "#266BCA" }}>
         <div className="container">
           {/* <h3 className="text page-subtitle font-weight-bold">Welcome to TonyZone</h3> */}

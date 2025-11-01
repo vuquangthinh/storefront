@@ -14,18 +14,76 @@
 
     .Toastify__toast {
         padding: 0;
+        border-radius: .5rem;
+        box-shadow: 0 3px 20px rgba(0, 0, 0, .1);
+        overflow: visible;
+    }
+
+    .minipopup-area {
+        padding: 0;
     }
 
     .minipopup-box {
-        padding: 2rem;
+        padding: 1.5rem 2rem;
+        background: $white-color;
+        border-radius: .5rem;
+        position: relative;
+        box-shadow: none;
     }
 
-    .product-media::before {
-        padding-top: 100%;
+    .minipopup-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: $dark-color;
+        margin-bottom: 1rem;
+    }
+
+    .product-media {
+        width: 7.2rem;
+        margin-right: 1.6rem;
+
+        &::before {
+            padding-top: 100%;
+        }
     }
 
     .product.product-cart {
         margin-bottom: 0;
+        display: flex;
+        align-items: center;
+
+        .product-detail {
+            margin-left: 0;
+        }
+
+        .product-name {
+            font-weight: 600;
+            font-size: 1.4rem;
+            color: $dark-color;
+            margin-bottom: .5rem;
+        }
+
+        .price-box {
+            font-size: 1.3rem;
+            color: $grey-color;
+
+            .product-quantity {
+                margin-right: .5rem;
+            }
+        }
+    }
+
+    .action-group {
+        margin-top: 1.6rem;
+
+        .btn {
+            min-width: 10rem;
+            font-size: 1.2rem;
+
+            & + .btn {
+                margin-left: .8rem;
+            }
+        }
     }
 }
 

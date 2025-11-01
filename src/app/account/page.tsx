@@ -60,7 +60,7 @@ export default function Page() {
 
                 <div className="form-checkbox mb-4">
                   <input type="checkbox" className="custom-checkbox" id="agree" name="agree" />
-                  <label className="form-control-label" htmlFor="agree">I agree to the <ALink href="/pages/terms">Terms</ALink> and <ALink href="/pages/privacy-policy">Privacy Policy</ALink></label>
+                  <label className="form-control-label" htmlFor="agree">I agree to the <ALink href="/terms-of-service">Terms</ALink> and <ALink href="/privacy-policy">Privacy Policy</ALink></label>
                 </div>
 
                 <button type="submit" className="btn btn-outline btn-dark btn-rounded">Create Account</button>
