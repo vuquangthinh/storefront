@@ -33,7 +33,7 @@ export type CartContextType = {
   adjustLine: (lineId: string, quantity: number) => Promise<void>;
   removeLine: (lineId: string) => Promise<void>;
   clearCart: () => Promise<void>;
-  refetch: () => Promise<void>;
+  refetch: () => Promise<any | null>;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -57,7 +57,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     awaitRefetchQueries: true,
   });
 
-  const assetHost = process.env.NEXT_PUBLIC_ASSET_URI ?? "";
   const resolveAssetUrl = (url?: string | null): string | null => {
     if (!url) return null;
     if (/^https?:\/\//i.test(url)) return url;
@@ -130,23 +129,62 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const handleAdjustLine = useCallback(
     async (lineId: string, quantity: number) => {
       if (!lineId) return;
+      const hasLine = order?.lines?.some((line: any) => line.id === lineId);
+      if (!hasLine) {
+        await refetch();
+        toast.info('Your cart was refreshed because an item changed.');
+        return;
+      }
       if (quantity <= 0) {
-        await removeOrderLine({ variables: { orderLineId: lineId } });
+        try {
+          const { data } = await removeOrderLine({ variables: { orderLineId: lineId } });
+          const payload = (data as { removeOrderLine?: any } | undefined)?.removeOrderLine;
+          if (payload?.__typename === 'ErrorResult') {
+            toast.error(payload?.message || 'Unable to remove item.');
+          }
+        } catch (error: any) {
+          console.warn('Failed to remove order line', error);
+          toast.error('Unable to remove item. Your cart was refreshed.');
+        }
       } else {
-        await adjustOrderLine({ variables: { orderLineId: lineId, quantity } });
+        try {
+          const { data } = await adjustOrderLine({ variables: { orderLineId: lineId, quantity } });
+          const payload = (data as { adjustOrderLine?: any } | undefined)?.adjustOrderLine;
+          if (payload?.__typename === 'ErrorResult') {
+            toast.error(payload?.message || 'Unable to update quantity.');
+          }
+        } catch (error: any) {
+          console.warn('Failed to adjust order line', error);
+          toast.error('Unable to update quantity. Your cart was refreshed.');
+        }
       }
       await refetch();
     },
-    [adjustOrderLine, removeOrderLine, refetch]
+    [adjustOrderLine, order?.lines, refetch, removeOrderLine]
   );
 
   const handleRemoveLine = useCallback(
     async (lineId: string) => {
       if (!lineId) return;
-      await removeOrderLine({ variables: { orderLineId: lineId } });
+      const hasLine = order?.lines?.some((line: any) => line.id === lineId);
+      if (!hasLine) {
+        await refetch();
+        toast.info('Your cart was refreshed because an item changed.');
+        return;
+      }
+      try {
+        const { data } = await removeOrderLine({ variables: { orderLineId: lineId } });
+        const payload = (data as { removeOrderLine?: any } | undefined)?.removeOrderLine;
+        if (payload?.__typename === 'ErrorResult') {
+          toast.error(payload?.message || 'Unable to remove item.');
+        }
+      } catch (error: any) {
+        console.warn('Failed to remove order line', error);
+        toast.error('Unable to remove item. Your cart was refreshed.');
+      }
       await refetch();
     },
-    [removeOrderLine, refetch]
+    [order?.lines, refetch, removeOrderLine]
   );
 
   const handleClearCart = useCallback(async () => {
@@ -163,7 +201,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     removeLine: handleRemoveLine,
     clearCart: handleClearCart,
     refetch: async () => {
-      await refetch();
+      const result = await refetch();
+      return (result?.data as { activeOrder?: any } | undefined)?.activeOrder ?? null;
     },
   };
 

@@ -39,6 +39,12 @@ export const ACTIVE_ORDER = gql`
           }
         }
       }
+      customer {
+        id
+        firstName
+        lastName
+        emailAddress
+      }
     }
   }
 `;
@@ -207,6 +213,153 @@ export const SET_ORDER_SHIPPING_METHOD = gql`
       ... on ErrorResult {
         errorCode
         message
+      }
+    }
+  }
+`;
+
+export const CREATE_STRIPE_PAYMENT_INTENT = gql`
+  mutation CREATE_STRIPE_PAYMENT_INTENT {
+    createStripePaymentIntent
+  }
+`;
+
+export const SET_CUSTOMER_FOR_ORDER = gql`
+  mutation SET_CUSTOMER_FOR_ORDER($input: CreateCustomerInput!) {
+    setCustomerForOrder(input: $input) {
+      __typename
+      ... on Order {
+        id
+        code
+        customer {
+          id
+          firstName
+          lastName
+          emailAddress
+        }
+      }
+      ... on ErrorResult {
+        errorCode
+        message
+      }
+    }
+  }
+`;
+
+export const ORDER_BY_CODE = gql`
+  query ORDER_BY_CODE($code: String!) {
+    orderByCode(code: $code) {
+      id
+      code
+      state
+      currencyCode
+      totalWithTax
+      subTotalWithTax
+      shippingWithTax
+      discounts {
+        amountWithTax
+        description
+      }
+      payments {
+        id
+        method
+        state
+        transactionId
+      }
+      lines {
+        id
+        quantity
+        discountedLinePriceWithTax
+        productVariant {
+          id
+          name
+          product {
+            slug
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const ORDER_TRACKING = gql`
+  query ORDER_TRACKING($code: String!) {
+    orderByCode(code: $code) {
+      id
+      code
+      state
+      createdAt
+      updatedAt
+      orderPlacedAt
+      currencyCode
+      totalWithTax
+      subTotalWithTax
+      shippingWithTax
+      customer {
+        id
+        firstName
+        lastName
+        emailAddress
+      }
+      shippingAddress {
+        fullName
+        company
+        streetLine1
+        streetLine2
+        city
+        province
+        postalCode
+        countryCode
+        phoneNumber
+      }
+      lines {
+        id
+        quantity
+        discountedLinePriceWithTax
+        productVariant {
+          id
+          name
+          sku
+          priceWithTax
+          featuredAsset {
+            preview
+          }
+          product {
+            slug
+          }
+        }
+      }
+      shippingLines {
+        id
+        priceWithTax
+        shippingMethod {
+          id
+          name
+        }
+      }
+      payments {
+        id
+        method
+        state
+        transactionId
+      }
+      fulfillments {
+        id
+        createdAt
+        updatedAt
+        state
+        method
+        trackingCode
+        lines {
+          quantity
+          orderLine {
+            id
+            productVariant {
+              id
+              name
+            }
+          }
+        }
       }
     }
   }

@@ -37,7 +37,7 @@ export default function CartPage() {
       const result = (data as any)?.setOrderShippingMethod;
       if (result?.__typename === "Order") {
         await refetch();
-        toast.success("Shipping updated.");
+        // toast.success("Shipping updated.");
       } else {
         toast.error(result?.message || "Failed to update shipping.");
       }

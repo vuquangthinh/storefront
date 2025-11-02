@@ -1,9 +1,9 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 
 import ALink from '~/components/features/custom-link';
-import Countdown from '~/components/features/countdown';
 import Quantity from '~/components/features/quantity';
 
 import ProductNav from '~/components/partials/product/product-nav';
@@ -13,6 +13,47 @@ import { useCart } from '@/context/cart/CartContext';
 import { useWishlist } from '@/context/wishlist/WishlistContext';
 
 import { toDecimal } from '~/utils';
+import limitedOfferStyles from '@/components/features/limited-offer-countdown.module.scss';
+import viewerCountStyles from '@/components/features/viewer-count-badge.module.scss';
+
+const LimitedOfferCountdown = dynamic(() => import('@/components/features/limited-offer-countdown'), {
+    ssr: false,
+    loading: () => (
+        <div className={limitedOfferStyles.wrapper} aria-live="polite">
+            <span className={`${limitedOfferStyles.label} d-block`}>
+                Limited-time offer! Sale ends in
+            </span>
+            <div className={`${limitedOfferStyles.timer} ${limitedOfferStyles.placeholder}`}>
+                <span className={limitedOfferStyles.section}>
+                    <span className={limitedOfferStyles.amount}>--</span>
+                    <span className={limitedOfferStyles.period}>HOURS</span>
+                </span>
+                <span className={limitedOfferStyles.section}>
+                    <span className={limitedOfferStyles.amount}>--</span>
+                    <span className={limitedOfferStyles.period}>MINUTES</span>
+                </span>
+                <span className={limitedOfferStyles.section}>
+                    <span className={limitedOfferStyles.amount}>--</span>
+                    <span className={limitedOfferStyles.period}>SECONDS</span>
+                </span>
+            </div>
+        </div>
+    )
+});
+
+const ViewerCountBadge = dynamic(() => import('@/components/features/viewer-count-badge'), {
+    ssr: false,
+    loading: () => (
+        <div className={viewerCountStyles.badge} role="status" aria-live="polite">
+            <span className={viewerCountStyles.icon}>
+                <i className="d-icon-users"></i>
+            </span>
+            <span className={viewerCountStyles.text}>
+                Other people want this. There are <strong>--</strong> people viewing this product right now.
+            </span>
+        </div>
+    )
+});
 
 // Minimal Collapse component
 function Collapse({ in: open, children }: { in: boolean; children: React.ReactNode }) {
@@ -206,10 +247,6 @@ function DetailOne(props: any) {
                 }
             </div>
 
-            {
-                product.data.price[0] !== product.data.price[1] && product.data.variants.length === 0 ?
-                    <Countdown type={2} /> : ''
-            }
 
             {/* <div className="ratings-container">
                 <div className="ratings-full">
@@ -221,6 +258,8 @@ function DetailOne(props: any) {
             </div> */}
 
             <p className="product-short-desc">{product.data.short_description}</p>
+
+
 
             {
                 product && product.data.variants.length > 0 ?
@@ -255,7 +294,7 @@ function DetailOne(props: any) {
                                                         className={`size ${curSize === item.name ? 'active' : ''} ${isDisabled(curColor, item.name) ? 'disabled' : ''}`}
                                                         key={"size-" + item.name}
                                                         onClick={() => toggleSizeHandler(item)}>
-                                                            {item.name}
+                                                        {item.name}
                                                     </ALink>)
                                             }
                                         </div>
@@ -306,6 +345,15 @@ function DetailOne(props: any) {
                     <button className={`btn-product btn-cart text-normal ls-normal font-weight-semi-bold ${cartActive ? '' : 'disabled'}`} onClick={addToCartHandler}><i className='d-icon-bag'></i>Add to Cart</button>
                 </div>
             </div>
+
+            <div className="mt-3">
+                <LimitedOfferCountdown />
+            </div>
+
+            <div className="mt-2">
+                <ViewerCountBadge />
+            </div>
+
 
             <hr className="product-divider mb-3"></hr>
 

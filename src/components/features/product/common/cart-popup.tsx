@@ -7,7 +7,8 @@ import { toDecimal } from '~/utils';
 export default function CartPopup({ product }: { product: any }) {
     const slug = product?.slug || product?.productSlug || '';
     const productHref = slug ? `/products/${ slug }` : '#';
-    const detailHref = slug ? `/product/default/${ slug }` : '#';
+    const detailHref = slug ? `/products/${ slug }` : '#';
+
     const pictureUrl = product?.image || product?.featuredAsset?.preview || product?.pictures?.[0]?.url || '/images/product-placeholder.png';
     const quantity = product?.qty ?? product?.quantity ?? 1;
     const price = typeof product?.price === 'number' ? product.price : 0;
