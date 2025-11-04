@@ -276,7 +276,7 @@ function CheckoutPageClient() {
     if (!defaultMethodId) return;
     (async () => {
       try {
-        const saveResult = await saveCheckoutDetails({ silent: true });
+        const saveResult = await saveCheckoutDetails({ silent: false });
         if (!saveResult.success) return;
         const latestOrder = saveResult.order ?? order;
         const currentShippingMethodId = latestOrder?.shippingLines?.[0]?.shippingMethod?.id ?? null;
@@ -495,7 +495,8 @@ function CheckoutPageClient() {
                           disabled={
                             !order ||
                             savingAddress ||
-                            settingShipping
+                            settingShipping ||
+                            !billingComplete
                           }
                         >
                           {savingAddress || settingShipping ? 'Processing…' : 'Save & Continue to Payment'}

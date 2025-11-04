@@ -15,17 +15,37 @@ import { toDecimal } from '~/utils';
 
 function PaymentPageClient() {
   const router = useRouter();
-  const { order, refetch } = useCart();
+  const { order, isLoading, refetch } = useCart();
   const [selectedPaymentCode, setSelectedPaymentCode] = useState<string | null>(null);
+  const [initialRefreshing, setInitialRefreshing] = useState<boolean>(true);
+
+  // Refetch cart/order immediately on mount before rendering payment content
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        await refetch();
+      } catch (e) {
+        // ignore; page guards will handle missing order
+      } finally {
+        if (active) setInitialRefreshing(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [refetch]);
 
   useEffect(() => {
-    if (!order) {
+    if (initialRefreshing) return;
+    if (!order || isLoading) {
       return;
     }
+    
     if (!order.lines?.length || !order.shippingAddress || !(order.shippingLines?.length)) {
       router.push('/checkout');
     }
-  }, [order?.id, order?.lines?.length, order?.shippingAddress, order?.shippingLines?.length, router]);
+  }, [initialRefreshing, isLoading, order?.id, order?.lines?.length, order?.shippingAddress, order?.shippingLines?.length, router]);
 
   const { data: paymentData, loading: paymentLoading } = useQuery<{ eligiblePaymentMethods: any[] }>(ELIGIBLE_PAYMENT_METHODS);
   const paymentMethods = useMemo(
@@ -92,7 +112,9 @@ function PaymentPageClient() {
   );
 
   useEffect(() => {
+    if (initialRefreshing) return;
     if (selectedPaymentCode) return;
+    if (isLoading || !order) return;
     if (!paymentMethods.length) return;
     const preset = order?.payments?.[0]?.method ?? null;
     const stripeOption = paymentMethods.find((method: any) => method?.code === 'stripe')?.code ?? null;
@@ -100,7 +122,7 @@ function PaymentPageClient() {
     const next = preset || stripeOption || fallback;
     if (!next) return;
     void handlePaymentMethodChange(next);
-  }, [handlePaymentMethodChange, order?.payments, paymentMethods, selectedPaymentCode]);
+  }, [handlePaymentMethodChange, initialRefreshing, isLoading, order, order?.payments, paymentMethods, selectedPaymentCode]);
 
   const orderLines = order?.lines ?? [];
 
@@ -170,6 +192,36 @@ function PaymentPageClient() {
       toast.error(error?.message || 'Payment could not be added.');
     }
   }, [addPaymentToOrder, confirmPayment, order, refetch, router, selectedPaymentCode]);
+
+  if (initialRefreshing) {
+    return (
+      <div className="page-content pt-7 pb-10 mb-10">
+        <div className="container text-center">
+          <p>Refreshing your cart…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading && !order) {
+    return (
+      <div className="page-content pt-7 pb-10 mb-10">
+        <div className="container text-center">
+          <p>Loading your order…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="page-content pt-7 pb-10 mb-10">
+        <div className="container text-center">
+          <p>No active order found. Redirecting…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-content pt-7 pb-10 mb-10">
@@ -253,7 +305,7 @@ function PaymentPageClient() {
           </div>
 
           <aside className="col-lg-4 sticky-sidebar-wrapper">
-            <div className="sticky-sidebar" data-sticky-options="{'bottom': 50}">
+            <div className="sticky-sidebar" data-sticky-options={'{"bottom": 50}'}>
               <div className="summary pt-5">
                 <h3 className="title title-simple text-left text-uppercase">Your Order</h3>
                 <table className="order-table">
@@ -347,6 +399,8 @@ function PaymentPageClient() {
                       return selectedPaymentCode === 'stripe' ? 'Pay with Stripe' : 'Complete Order';
                     })()}
                   </button>
+
+                  <div style={{ height: '10px' }} />
 
                   <button
                     type="button"

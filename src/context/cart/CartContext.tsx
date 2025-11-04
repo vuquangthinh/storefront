@@ -40,6 +40,9 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const { order, refetch, loading } = useActiveOrder();
+
+  console.log('order', order);
+  
   const [addItemToOrder] = useMutation<{ addItemToOrder: any }, { productVariantId: string; quantity: number }>(
     ADD_ITEM_TO_ORDER,
     { refetchQueries: [{ query: ACTIVE_ORDER }], awaitRefetchQueries: true }
@@ -107,21 +110,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
         toast.error(payload?.message || "Unable to add item to cart.");
         return;
       }
-      await refetch();
-      toast(
-        <CartPopup
-          product={{
-            ...(product || {}),
-            qty: quantity,
-          }}
-        />,
-        {
-          className: "cart-toast",
-          bodyClassName: "cart-toast-body",
-          closeButton: false,
-          icon: false,
+      const latest = await refetch();
+      const activeOrder = (latest?.data as { activeOrder?: any } | undefined)?.activeOrder;
+      let toastProduct: any = {
+        ...(product || {}),
+        qty: quantity,
+      };
+      if (activeOrder && Array.isArray(activeOrder.lines)) {
+        const line =
+          activeOrder.lines.find((l: any) => l?.productVariant?.id === resolvedVariantId) ||
+          activeOrder.lines[activeOrder.lines.length - 1];
+        if (line) {
+          toastProduct = {
+            slug: line?.productVariant?.product?.slug || toastProduct?.slug,
+            name: line?.productVariant?.name || toastProduct?.name,
+            qty: Number(line?.quantity) || toastProduct?.qty || 1,
+            price: (line?.productVariant?.priceWithTax ?? 0) / 100,
+            image: resolveAssetUrl(line?.productVariant?.featuredAsset?.preview ?? null) || toastProduct?.image || null,
+          };
         }
-      );
+      }
+      toast(<CartPopup product={toastProduct} />, {
+        className: "cart-toast",
+        bodyClassName: "cart-toast-body",
+        closeButton: false,
+        icon: false,
+      });
     },
     [addItemToOrder, refetch]
   );

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import dynamic from 'next/dynamic';
+import React from 'react';
 
-const PaymentPageClient = dynamic(() => import('./PaymentPageClient'), { ssr: false });
+const PaymentPageClient = React.lazy(() => import('./PaymentPageClient'));
 
 export const metadata: Metadata = {
   title: 'Checkout Payment',
@@ -11,7 +11,9 @@ export const metadata: Metadata = {
 export default function PaymentPage() {
   return (
     <main className="main checkout">
-      <PaymentPageClient />
+      <React.Suspense fallback={<div>Loading...</div>}>
+        <PaymentPageClient />
+      </React.Suspense>
     </main>
   );
 }

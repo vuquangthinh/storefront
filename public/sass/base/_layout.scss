@@ -146,3 +146,18 @@
 .d-inline-block {
     display: inline-block;
 }
+
+.table-bordered {
+  border: solid 1px #ddd;
+  border-collapse: collapse;
+
+  th {
+    border: solid 1px #ddd;
+    padding: .5rem 1rem;
+  }
+
+  td {
+    border: solid 1px #ddd;
+    padding: .5rem 1rem;
+  }
+}

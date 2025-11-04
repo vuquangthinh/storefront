@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import IntroSection from "~/components/partials/home/intro-section";
-import CategorySection from "~/components/partials/home/category-section";
+// import CategorySection from "~/components/partials/home/category-section";
 import ProductCollection from "~/components/partials/home/product-collection";
 import BannerSection from "~/components/partials/home/banner-section";
 import FeaturedCollection from "~/components/partials/home/featured-collection";
@@ -54,13 +54,29 @@ const SEARCH_QUERY = `
   }
 `;
 
+const SEARCH_QUERY_FEATURED = `
+  query HomepageProducts($take: Int!, $skip: Int!, $sort: SearchResultSortParameter) {
+    search(input: { groupByProduct: true, take: $take, skip: $skip, sort: $sort }) {
+      items {
+        slug
+        productName
+        productAsset { preview }
+        priceWithTax {
+          ... on SinglePrice { value }
+          ... on PriceRange { min max }
+        }
+      }
+    }
+  }
+`;
+
 const COLLECTION_CONFIG = {
   gifts: {
     slug: "gifts",
     title: "Gifts",
     bannerSubTitle: "Gift Ideas",
     bannerTitle: "Perfect Presents<br />For Everyone",
-    url: "/images/home/banner/2.png",
+    url: "/images/home/banner/1.png",
     btnAdClass: "",
     adClass: "mt-10 pt-6",
   },
@@ -69,7 +85,7 @@ const COLLECTION_CONFIG = {
     title: "Hoodies",
     bannerSubTitle: "Stay Warm",
     bannerTitle: "Cozy Hoodies<br />For Every Season",
-    url: "/images/home/banner/2.png",
+    url: "/images/home/banner/4.png",
     btnAdClass: "mb-1",
     adClass: "mt-10 pt-5",
   },
@@ -145,7 +161,7 @@ async function fetchProductsFromVendure(options: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        query: SEARCH_QUERY,
+        query: collectionSlug ? SEARCH_QUERY : SEARCH_QUERY_FEATURED,
         variables: { collectionSlug, take, skip, sort },
       }),
       cache: "no-store",
@@ -192,7 +208,7 @@ export default function Page() {
         setCollectionsLoading({ gifts: true, hoodies: true, tshirts: true });
 
         const [trending, gifts, hoodies, tshirts] = await Promise.all([
-          fetchProductsFromVendure({ take: 12, sort: { score: "DESC" } }).catch(() => []),
+          fetchProductsFromVendure({ take: 12, sort: { score: "DESC" } }).catch((e) => []),
           fetchProductsFromVendure({ collectionSlug: COLLECTION_CONFIG.gifts.slug }).catch(() => []),
           fetchProductsFromVendure({ collectionSlug: COLLECTION_CONFIG.hoodies.slug }).catch(() => []),
           fetchProductsFromVendure({ collectionSlug: COLLECTION_CONFIG.tshirts.slug }).catch(() => []),
@@ -241,7 +257,9 @@ export default function Page() {
           btnAdClass={COLLECTION_CONFIG.gifts.btnAdClass}
         />
 
-        <BannerSection />
+        {/* <BannerSection /> */}
+        <BannerSection backgroundColor="#a54506ff" subTitle="Christmas Sale" title="Latest Christmas Collection" titleAdClass="ls-s" btnAdClass="mb-1" />
+
 
         <ProductCollection
           products={collectionProducts.hoodies}
@@ -254,7 +272,6 @@ export default function Page() {
           btnAdClass={COLLECTION_CONFIG.hoodies.btnAdClass}
         />
 
-        <BannerSection subTitle="Black Friday Sale" title="Latest Power Bank" url="/images/home/banner/4.jpg" titleAdClass="ls-s" />
 
         <ProductCollection
           products={collectionProducts.tshirts}

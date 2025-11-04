@@ -286,7 +286,7 @@ export default async function Page({ params }: PageProps) {
                   </div>
 
                   <div className="col-md-6">
-                    <DetailFive data={adapted} isDesc={true} isProductNav={false} />
+                    <DetailFive data={adapted} isDesc={true} isProductNav={false} isGuide />
                   </div>
                 </div>
 

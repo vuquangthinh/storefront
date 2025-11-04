@@ -30,7 +30,7 @@ export default function Footer () {
 
                 <div className="footer-middle">
                     <div className="row">
-                        <div className="col-lg-3 col-md-6">
+                        <div className="col-lg-4 col-md-6">
                             <div className="widget widget-info">
                                 <h4 className="widget-title">Contact Info</h4>
                                 <ul className="widget-body">
@@ -55,7 +55,7 @@ export default function Footer () {
                                 </ul>
                             </div>
                         </div>
-                        <div className="col-lg-3 col-md-6">
+                        <div className="col-lg-4 col-md-6">
                             <div className="widget ml-lg-4">
                                 <h4 className="widget-title">About Us</h4>
                                 <ul className="widget-body">
@@ -77,7 +77,7 @@ export default function Footer () {
                                 </ul>
                             </div>
                         </div>
-                        <div className="col-lg-3 col-md-6">
+                        <div className="col-lg-4 col-md-6">
                             <div className="widget ml-lg-4">
                                 <h4 className="widget-title">My Account</h4>
                                 <ul className="widget-body">

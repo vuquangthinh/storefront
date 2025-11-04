@@ -64,7 +64,8 @@ export default function CartPage() {
         <div className="step-by pr-4 pl-4">
           <h3 className="title title-simple title-step active"><ALink href="#">1. Shopping Cart</ALink></h3>
           <h3 className="title title-simple title-step"><ALink href="/checkout">2. Checkout</ALink></h3>
-          <h3 className="title title-simple title-step"><ALink href="#">3. Order Complete</ALink></h3>
+          <h3 className="title title-simple title-step"><ALink href="/checkout/payment">3. Payment</ALink></h3>
+          <h3 className="title title-simple title-step"><ALink href="#">4. Order Complete</ALink></h3>
         </div>
 
         <div className="container mt-7 mb-2">

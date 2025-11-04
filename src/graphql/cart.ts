@@ -9,6 +9,18 @@ export const ACTIVE_ORDER = gql`
       subTotalWithTax
       totalWithTax
       shippingWithTax
+      shippingAddress {
+        fullName
+        streetLine1
+        streetLine2
+        city
+        province
+        postalCode
+        countryCode
+        phoneNumber
+        country
+        company
+      }
       discounts {
         amountWithTax
         description

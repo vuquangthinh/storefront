@@ -98,7 +98,7 @@ export default function OrderConfirmationPage({ params }: PageProps) {
                       </p>
                     )}
                     <h3 className="title title-simple text-left text-uppercase">Order Summary</h3>
-                    <table className="table table-order text-left mt-3">
+                    <table className="table table-order table-bordered text-left mt-3">
                       <thead>
                         <tr>
                           <th>Item</th>
