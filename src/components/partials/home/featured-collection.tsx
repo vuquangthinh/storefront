@@ -15,7 +15,7 @@ function FeaturedCollection ( props ) {
     return (
         <Reveal keyframes={ fadeIn } delay={ 300 } duration={ 1200 } triggerOnce>
             <section className="product-wrapper container mt-10 pt-5">
-                <h2 className="title title-simple text-left with-link">Our Featured<ALink href="/shop">View All Products<i className="d-icon-arrow-right"></i></ALink></h2>
+                <h2 className="title title-simple text-left with-link">Our Featured<ALink href="/products">View All Products<i className="d-icon-arrow-right"></i></ALink></h2>
 
                 {
                     loading ?

@@ -28,7 +28,7 @@ function BestCollection ( props ) {
                             />
                         </div>
                     </div>
-                    <ALink href="/shop" className="">View All Products<i className="d-icon-arrow-right"></i></ALink>
+                    <ALink href="/products" className="">View All Products<i className="d-icon-arrow-right"></i></ALink>
                 </div>
 
                 {

@@ -272,7 +272,7 @@ function DetailOne(props: any) {
                                     <div className="product-variations">
                                         {
                                             colors.map((item: any) =>
-                                                <ALink href={`#${item.name}`} className={`color ${curColor === item.name ? 'active' : ''} ${isDisabled(item.name, curSize) ? 'disabled' : ''}`} data-color={item.value} key={"color-" + item.name} style={{ backgroundColor: `${item.value}` }} onClick={() => toggleColorHandler(item)}>
+                                                <ALink href={`#${item.name}`} className={`color ${curColor === item.name ? 'active' : ''} ${isDisabled(item.name, curSize) ? 'disabled' : ''}`} data-color={`${item.value}`.toUpperCase()} key={"color-" + item.name} onClick={() => toggleColorHandler(item)}>
                                                     {item.name}
                                                 </ALink>)
                                         }
@@ -338,13 +338,27 @@ function DetailOne(props: any) {
 
             <hr className="product-divider"></hr>
 
-            <div className="product-form product-qty">
-                <label className="d-none">QTY:</label>
-                <div className="product-form-group">
-                    <Quantity max={product.data.stock} product={product} onChangeQty={(q: number) => changeQty(q)} />
-                    <button className={`btn-product btn-cart text-normal ls-normal font-weight-semi-bold ${cartActive ? '' : 'disabled'}`} onClick={addToCartHandler}><i className='d-icon-bag'></i>Add to Cart</button>
+            {product.data.stock > 0 ? (
+
+                <div className="product-form product-qty">
+                    <label className="d-none">QTY:</label>
+                    <div className="product-form-group">
+                        <Quantity max={product.data.stock} product={product} onChangeQty={(q: number) => changeQty(q)} />
+                        <button className={`btn-product btn-cart text-normal ls-normal font-weight-semi-bold ${cartActive ? '' : 'disabled'}`} onClick={addToCartHandler}><i className='d-icon-bag'></i>Add to Cart</button>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className="product-form product-qty">
+                    <label className="d-none">QTY:</label>
+                    <div className="product-form-group" style={{
+                        fontSize: '3rem',
+                        fontWeight: 'bold',
+                        color: 'red'
+                    }}>
+                        Out of stock
+                    </div>
+                </div>
+            )}
 
             <div className="mt-3">
                 <LimitedOfferCountdown />

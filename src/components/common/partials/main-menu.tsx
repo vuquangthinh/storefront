@@ -8,7 +8,7 @@ import { gql } from '@apollo/client';
 type VendureCollection = { id: string; name: string; slug: string; assets?: { source: string; width: number; height: number }[] | []; parent?: { id: string | null; name?: string } | null };
 
 const COLS_QUERY = gql`
-  query COLS { collections(options:{ take: 20, sort:{ name: ASC }}) { items { id name slug assets { source width height} parent { id name } } } }
+  query COLS { collections(options:{ take: 100, sort:{ name: ASC }}) { items { id name slug assets { source width height} parent { id name } } } }
 `;
 
 export default function MainMenu() {
@@ -42,6 +42,10 @@ export default function MainMenu() {
       <ul className="menu">
         <li id="menu-home" className={isActivePath('/') ? 'active' : ''}>
           <ALink href='/'>Home</ALink>
+        </li>
+
+        <li id="all-products" className={isActivePath('/products') ? 'active' : ''}>
+          <ALink href='/products'>All Products</ALink>
         </li>
 
         {error ? (
@@ -87,7 +91,7 @@ export default function MainMenu() {
                           </h4> */}
                           {/* <h3 className="banner-title font-weight-bold"><span
                             className="text-uppercase">Up to</span>70% Off</h3>
-                          <ALink href={"/shop"} className="btn btn-link btn-underline">shop now<i
+                          <ALink href={"/products"} className="btn btn-link btn-underline">shop now<i
                             className="d-icon-arrow-right"></i></ALink> */}
                         </div>
                       </div>

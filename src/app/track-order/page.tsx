@@ -176,7 +176,7 @@ export default function Page() {
             ) : null}
 
             {order && emailMatches === false ? (
-              <div className="alert alert-danger">
+              <div className="alert alert-danger text-white">
                 The email you entered does not match the customer email on this order.
               </div>
             ) : null}

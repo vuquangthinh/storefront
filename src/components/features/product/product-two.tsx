@@ -103,8 +103,11 @@ function ProductTwo ( props: ProductTwoProps ) {
                     }
                 </div>
 
+                {/* {JSON.stringify(product)} */}
+
                 <div className="product-action-vertical">
-                    {
+                    
+                    {/* {
                         product.variants.length > 0 ?
                             <ALink href={ `/products/${ product.slug }` } className="btn-product-icon btn-cart" title="Go to product">
                                 <i className="d-icon-arrow-right"></i>
@@ -112,7 +115,7 @@ function ProductTwo ( props: ProductTwoProps ) {
                             <a href="#" className="btn-product-icon btn-cart" title="Add to cart" onClick={ addToCartHandler }>
                                 <i className="d-icon-bag"></i>
                             </a>
-                    }
+                    } */}
                     <a href="#" className="btn-product-icon btn-wishlist" title={ wish ? 'Remove from wishlist' : 'Add to wishlist' } onClick={ wishlistHandler }>
                         <i className={ wish ? "d-icon-heart-full" : "d-icon-heart" }></i>
                     </a>

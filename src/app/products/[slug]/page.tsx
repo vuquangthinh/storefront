@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import ALink from '~/components/features/custom-link';
 import DetailFive from '@/components/partials/product/detail/detail-five';
 import RelatedProducts from '@/components/partials/product/related-products';
+import FakeReviews from '@/components/partials/product/fake-reviews';
 import ShopBannerDefault from '@/components/partials/shop/banner/shop-banner-default';
 import dynamic from 'next/dynamic';
 import React from 'react';
@@ -61,7 +62,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         description: prod.description || 'View product details, specs, and related items.'
       };
     }
-  } catch {}
+  } catch { }
   return { title: 'Product not found', description: 'The requested product does not exist.' };
 }
 
@@ -155,8 +156,8 @@ export default async function Page({ params }: PageProps) {
   // Try Vendure product first
   let v = null as any;
   try {
-    v = await fetchVendureProduct(params.slug);
-  } catch {}
+    v = await fetchVendureProduct((await params).slug);
+  } catch { }
 
   let adapted: any = null;
   let relatedProducts: any[] = [];
@@ -252,7 +253,7 @@ export default async function Page({ params }: PageProps) {
     if (firstCol) {
       try {
         relatedProducts = await fetchRelatedByCollection(firstCol, v.slug);
-      } catch {}
+      } catch { }
     }
   } else {
     return notFound();
@@ -263,8 +264,9 @@ export default async function Page({ params }: PageProps) {
   const productName = adapted.product.data.name;
 
   return (
-    <main className="container main mt-lg-6 single-product">
-      {/* <nav className="breadcrumb-nav">
+    <>
+      <main className="container main mt-lg-6 single-product">
+        {/* <nav className="breadcrumb-nav">
         <div className="container">
           <ul className="breadcrumb">
             <li><ALink href="/"><i className="d-icon-home"></i></ALink></li>
@@ -274,25 +276,32 @@ export default async function Page({ params }: PageProps) {
         </div>
       </nav> */}
 
-      <div className="page-content">
-        <div className="container-fluid mt-10 pt-3 mb-10">
-          <div className="row gutter-lg">
-            <div className="col-lg-12 col-xxl-12">
-              <div className="product product-single row">
-                <div className="col-md-6">
-                  <MediaFive product={adapted.product.data} />
+        <div className="page-content">
+          <div className="container-fluid mt-10 pt-3 mb-4">
+            <div className="row gutter-lg">
+              <div className="col-lg-12 col-xxl-12">
+                <div className="product product-single row">
+                  <div className="col-md-6">
+                    <MediaFive product={adapted.product.data} />
+                  </div>
+
+                  <div className="col-md-6">
+                    <DetailFive data={adapted} isDesc={true} isProductNav={false} />
+                  </div>
                 </div>
 
-                <div className="col-md-6">
-                  <DetailFive data={adapted} isDesc={true} isProductNav={false} />
-                </div>
+                <RelatedProducts products={relatedProducts} adClass="pt-3" />
+
               </div>
-
-              <RelatedProducts products={relatedProducts} adClass="pt-3" />
             </div>
           </div>
+
         </div>
-      </div>
-    </main>
+
+
+      </main>
+      <FakeReviews />
+
+    </>
   );
 }

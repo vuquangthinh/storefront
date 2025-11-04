@@ -8,7 +8,7 @@ export default function Footer () {
                 {/* <div className="footer-top">
                     <div className="row align-items-center">
                         <div className="col-lg-3">
-                            <ALink href="/shop" className="logo-footer">
+                            <ALink href="/products" className="logo-footer">
                                 <img src="/home/logo-footer.png" alt="logo-footer" width="154" height="43" />
                             </ALink>
                         </div>
@@ -62,9 +62,9 @@ export default function Footer () {
                                     <li>
                                         <ALink href="/about-us">About Us</ALink>
                                     </li>
-                                    <li>
+                                    {/* <li>
                                         <ALink href="#">Order History</ALink>
-                                    </li>
+                                    </li> */}
                                     <li>
                                         <ALink href="/returns">Returns</ALink>
                                     </li>
@@ -96,7 +96,7 @@ export default function Footer () {
                                 </ul>
                             </div>
                         </div>
-                        <div className="col-lg-3 col-md-6">
+                        {/* <div className="col-lg-3 col-md-6">
                             <div className="widget widget-instagram">
                                 <h4 className="widget-title">Instagram</h4>
                                 <figure className="widget-body row">
@@ -126,7 +126,7 @@ export default function Footer () {
                                     </div>
                                 </figure>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
 
@@ -137,7 +137,7 @@ export default function Footer () {
                         </figure>
                     </div> */}
                     <div className="footer-center">
-                        <p className="copyright">Riode eCommerce &copy; 2021. All Rights Reserved</p>
+                        <p className="copyright">TonyZone &copy; 2024. All Rights Reserved</p>
                     </div>
                     <div className="footer-right">
                         <div className="social-links">

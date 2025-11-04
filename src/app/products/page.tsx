@@ -48,7 +48,8 @@ async function fetchVendureProducts(params: SearchParams) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, variables: { term: search || null, collectionSlug: category || null, take, skip } }),
-    next: { revalidate: 30 }
+    // next: { revalidate: false },
+    cache: 'no-store'
   });
   const json = await res.json();
   const items: VendureSearchItem[] = json?.data?.search?.items || [];

@@ -84,11 +84,34 @@ function CheckoutPageClient() {
   const [selectedPaymentCode, setSelectedPaymentCode] = useState<string | null>(null);
 
   const [emailAddress, setEmailAddress] = useState('');
+  const [customerReady, setCustomerReady] = useState(false);
 
   useEffect(() => {
-    const existingEmail = order?.customer?.emailAddress ?? '';
-    setEmailAddress(existingEmail);
-  }, [order?.customer?.emailAddress]);
+    if (!order?.id) {
+      setEmailAddress('');
+      setCustomerReady(false);
+      return;
+    }
+    const savedEmail = order?.customer?.emailAddress ?? '';
+    setEmailAddress(savedEmail);
+    setCustomerReady(Boolean(savedEmail));
+  }, [order?.id, order?.customer?.emailAddress]);
+
+  useEffect(() => {
+    if (!customerReady && selectedPaymentCode) {
+      setSelectedPaymentCode(null);
+    }
+  }, [customerReady, selectedPaymentCode]);
+
+  const handleEmailChange = (value: string) => {
+    setEmailAddress(value);
+    if (customerReady) {
+      const saved = (order?.customer?.emailAddress ?? '').trim();
+      if (value.trim() !== saved) {
+        setCustomerReady(false);
+      }
+    }
+  };
 
   const billingComplete =
     billingAddress.firstName &&
@@ -172,7 +195,11 @@ function CheckoutPageClient() {
     field: keyof AddressFormValues,
     value: string
   ) => {
-    setter((prev) => ({ ...prev, [field]: value }));
+    setter((prev) => {
+      if (prev[field] === value) return prev;
+      setCustomerReady(false);
+      return { ...prev, [field]: value };
+    });
   };
 
   const saveCheckoutDetails = async (options?: { silent?: boolean }) => {
@@ -261,6 +288,7 @@ function CheckoutPageClient() {
       }
 
       lastSavedKeyRef.current = addressKey;
+      setCustomerReady(true);
 
       let refreshedOrder: any | null = order;
       try {
@@ -310,6 +338,11 @@ function CheckoutPageClient() {
 
   const handlePaymentMethodChange = useCallback(
     async (code: string) => {
+      if (!customerReady) {
+        toast.info('Please finish your information before choosing a payment method.');
+        return;
+      }
+
       if (selectedPaymentCode !== code) {
         setSelectedPaymentCode(code);
       }
@@ -343,6 +376,7 @@ function CheckoutPageClient() {
 
   useEffect(() => {
     if (selectedPaymentCode) return;
+    if (!customerReady) return;
     const preset = order?.payments?.[0]?.method ?? null;
     const stripeOption = paymentMethods.find((method: any) => method?.code === 'stripe')?.code ?? null;
     const fallback = paymentMethods[0]?.code ?? null;
@@ -358,6 +392,7 @@ function CheckoutPageClient() {
       return;
     }
     setSelectedShippingId(shippingMethodId);
+    setCustomerReady(false);
     try {
       await setShippingMethod({ variables: { shippingMethodId: [shippingMethodId] } });
       toast.success('Shipping method updated.');
@@ -451,7 +486,7 @@ function CheckoutPageClient() {
                       className="form-control"
                       name="email-address"
                       value={emailAddress}
-                      onChange={(event) => setEmailAddress(event.target.value)}
+                      onChange={(event) => handleEmailChange(event.target.value)}
                       required
                     />
 
@@ -583,16 +618,24 @@ function CheckoutPageClient() {
                         </table>
 
                         <div className="payment accordion radio-type">
-                          <h4 className="summary-subtitle ls-m pb-3">Payment Methods</h4>
+                          <div className="d-flex align-items-center justify-content-between">
+                            <h4 className="summary-subtitle ls-m pb-3 mb-0">Payment Methods</h4>
+
+                          </div>
+
+                          {!customerReady && (
+                            <span className="text-green small">Please finish your information to enable payments.</span>
+                          )}
+
                           {paymentLoading ? (
                             <p className="text-grey mb-0">Loading payment methods…</p>
                           ) : paymentMethods.length > 0 ? (
-                            <ul className="list-unstyled mb-0">
+                            <ul className="list-unstyled mb-0 p-0">
                               {paymentMethods.map((method: any) => {
                                 const checked = selectedPaymentCode === method.code;
                                 return (
                                   <li key={method.code} className="mb-2">
-                                    <div className="custom-radio">
+                                    <div className={`custom-radio ${!customerReady ? 'opacity-25' : ''}`}>
                                       <input
                                         type="radio"
                                         id={`payment-${method.code}`}
@@ -600,14 +643,16 @@ function CheckoutPageClient() {
                                         className="custom-control-input"
                                         checked={checked}
                                         onChange={() => handlePaymentMethodChange(method.code)}
-                                        disabled={addingPayment}
+                                        disabled={addingPayment || !customerReady}
                                       />
                                       <label className="custom-control-label" htmlFor={`payment-${method.code}`}>
                                         {method.name || method.code}
                                       </label>
                                     </div>
                                     {method.description && (
-                                      <p className="text-body lh-base mb-0 ml-4">{method.description}</p>
+                                      <p className={`text-body lh-base mb-0 ml-4 ${!customerReady ? 'opacity-75' : ''}`}>
+                                        {method.description}
+                                      </p>
                                     )}
                                     {method.eligibilityMessage && (
                                       <p className="text-danger mb-0 ml-4">{method.eligibilityMessage}</p>
@@ -619,7 +664,7 @@ function CheckoutPageClient() {
                           ) : (
                             <p className="text-grey mb-0">No payment methods available.</p>
                           )}
-                          {selectedPaymentCode === 'stripe' ? (
+                          {customerReady && selectedPaymentCode === 'stripe' ? (
                             stripePromise ? (
                               stripeClientSecret ? (
                                 <div className="mt-4">
@@ -666,7 +711,7 @@ function CheckoutPageClient() {
                             I have read and agree to the website <ALink href="/terms-of-service">terms and conditions </ALink>*
                           </label>
                         </div>
-
+{/* 
                         {JSON.stringify({
                           order,
                           savingAddress,
@@ -677,7 +722,7 @@ function CheckoutPageClient() {
                           stripeClientSecret,
                           stripeReady,
                           stripeLoading,
-                        })}
+                        })} */}
 
                         <button
                           type="submit"
@@ -698,6 +743,7 @@ function CheckoutPageClient() {
                             savingAddress ||
                             settingShipping ||
                             addingPayment ||
+                            !customerReady ||
                             (paymentMethods.length > 0 && !selectedPaymentCode) ||
                             (selectedPaymentCode === 'stripe' && (!stripeClientSecret || !stripeReady || stripeLoading))
                           }

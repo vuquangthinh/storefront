@@ -18,7 +18,7 @@ function Collapse({ in: open, children }: { in: boolean; children: React.ReactNo
     return open ? <>{children}</> : null;
 }
 
-function DetailOne ( props: any ) {
+function DetailTwo ( props: any ) {
     const router = useRouter();
     const { data, isSticky = false, isDesc = false, adClass = '' } = props;
     const { addToCart } = useCart();
@@ -311,4 +311,4 @@ function DetailOne ( props: any ) {
     )
 }
 
-export default DetailOne;
+export default DetailTwo;

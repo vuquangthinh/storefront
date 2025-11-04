@@ -12,6 +12,17 @@ import { toDecimal } from '~/utils';
 
 // ---------- Types ----------
 interface ProductVariant {
+  id?: string;
+  name?: string;
+  priceWithTax?: number;
+  stockLevel?: string;
+  assets?: { preview?: string | null }[];
+  options?: Array<{
+    id: string;
+    name: string;
+    code?: string | null;
+    group?: { id: string; name: string; code?: string | null } | null;
+  }>;
   size?: { name: string; size: string } | null;
   color?: { name: string; color: string } | null;
   price?: number;
@@ -74,19 +85,36 @@ const DetailOne: React.FC<DetailOneProps> = ({
   const product = data?.product ?? data; // compatibility fallback
   const productData = product?.data ?? product;
 
-  const colors: Array<{ name: string; value: string }> = [];
-  const sizes: Array<{ name: string; value: string }> = [];
+  const colors: Array<{ id: string; name: string }> = [];
+  const sizes: Array<{ id: string; name: string }> = [];
 
   const wish = isWishlisted(productData.slug);
 
   // extract unique sizes and colors
   if (productData?.variants?.length > 0) {
-    productData.variants.forEach((item) => {
-      if (item.size && sizes.findIndex((s) => s.name === item.size!.name) === -1) {
-        sizes.push({ name: item.size.name, value: item.size.size });
+    productData.variants.forEach((variant: ProductVariant) => {
+      if (variant.options?.length) {
+        variant.options.forEach((opt: NonNullable<ProductVariant['options']>[number]) => {
+          const groupCode = opt.group?.code || opt.group?.name || "";
+          if (/color/i.test(groupCode)) {
+            if (!colors.some((c) => c.id === opt.id)) {
+              colors.push({ id: opt.id, name: opt.name });
+            }
+          } else if (/size/i.test(groupCode)) {
+            if (!sizes.some((s) => s.id === opt.id)) {
+              sizes.push({ id: opt.id, name: opt.name });
+            }
+          }
+        });
       }
-      if (item.color && colors.findIndex((c) => c.name === item.color!.name) === -1) {
-        colors.push({ name: item.color.name, value: item.color.color });
+
+      if (!variant.options?.length) {
+        if (variant.color && !colors.some((c) => c.name === variant.color!.name)) {
+          colors.push({ id: variant.color.name, name: variant.color.name });
+        }
+        if (variant.size && !sizes.some((s) => s.name === variant.size!.name)) {
+          sizes.push({ id: variant.size.name, name: variant.size.name });
+        }
       }
     });
   }
@@ -101,29 +129,37 @@ const DetailOne: React.FC<DetailOneProps> = ({
 
   // determine active variant
   useEffect(() => {
-    if (productData?.variants?.length > 0) {
-      const firstVariant = productData.variants[0];
-      if (
-        (curSize !== 'null' && curColor !== 'null') ||
-        (curSize === 'null' && !firstVariant.size && curColor !== 'null') ||
-        (curColor === 'null' && !firstVariant.color && curSize !== 'null')
-      ) {
-        setCartActive(true);
-        const index = productData.variants.findIndex(
-          (v) =>
-            (v.size && v.color && v.size.name === curSize && v.color.name === curColor) ||
-            (!v.size && v.color && v.color.name === curColor) ||
-            (!v.color && v.size && v.size.name === curSize)
-        );
-        setCurIndex(index);
-      } else {
-        setCartActive(false);
-      }
-    } else {
-      setCartActive(true);
+    if (!productData?.variants?.length) {
+      setCartActive(productData.stock > 0);
+      return;
     }
 
-    if (productData.stock === 0) setCartActive(false);
+    const matchesSelection = (variant: ProductVariant) => {
+      if (!variant) return false;
+      const optionIds = variant.options?.map((opt) => opt.id) || [];
+
+      const colorSelected = curColor !== 'null';
+      const sizeSelected = curSize !== 'null';
+
+      const matchesColor = !colorSelected || optionIds.includes(curColor);
+      const matchesSize = !sizeSelected || optionIds.includes(curSize);
+
+      if (variant.options?.length) {
+        return matchesColor && matchesSize;
+      }
+
+      const variantColor = variant.color?.name;
+      const variantSize = variant.size?.name;
+      const colorOk = !colorSelected || variantColor === curColor;
+      const sizeOk = !sizeSelected || variantSize === curSize;
+      return colorOk && sizeOk;
+    };
+
+    const nextIndex = productData.variants.findIndex(matchesSelection);
+    setCurIndex(nextIndex);
+    const hasMatch = nextIndex > -1;
+    const inStock = productData.stock !== 0;
+    setCartActive(hasMatch && inStock);
   }, [curColor, curSize, productData]);
 
   // wishlist handler
@@ -158,17 +194,22 @@ const DetailOne: React.FC<DetailOneProps> = ({
   };
 
   // disable invalid combinations
-  function isDisabled(color: string, size: string): boolean {
+  function isDisabled(colorId: string, sizeId: string): boolean {
     if (!productData?.variants?.length) return false;
-    if (color === 'null' || size === 'null') return false;
+    if (colorId === 'null' || sizeId === 'null') return false;
 
     return (
-      productData.variants.findIndex(
-        (v) =>
-          (!v.size && v.color?.name === color) ||
-          (!v.color && v.size?.name === size) ||
-          (v.color?.name === color && v.size?.name === size)
-      ) === -1
+      productData.variants.findIndex((variant: ProductVariant) => {
+        if (variant.options?.length) {
+          const optionIds = variant.options.map((opt: NonNullable<ProductVariant['options']>[number]) => opt.id);
+          const colorMatch = optionIds.includes(colorId);
+          const sizeMatch = optionIds.includes(sizeId);
+          return colorMatch && sizeMatch;
+        }
+        const variantColorId = variant.color?.name || variant.color?.color;
+        const variantSizeId = variant.size?.name || variant.size?.size;
+        return variantColorId === colorId && variantSizeId === sizeId;
+      }) === -1
     );
   }
 
@@ -180,16 +221,19 @@ const DetailOne: React.FC<DetailOneProps> = ({
     if (!cartActive || productData.stock <= 0) return;
 
     const variants = productData.variants || [];
-    const variant = variants.length > 0
-      ? (curIndex > -1 ? variants[curIndex] : variants[0])
-      : undefined;
+    const variant = variants.length > 0 ? (curIndex > -1 ? variants[curIndex] : variants[0]) : undefined;
 
     const variantId = variant?.id;
-    const basePrice = variant?.sale_price ?? variant?.price ?? productData.price[0];
+    const basePrice =
+      typeof variant?.priceWithTax === 'number'
+        ? variant.priceWithTax / 100
+        : variant?.sale_price ?? variant?.price ?? productData.price[0];
 
     let displayName = productData.name;
-    if (curColor !== 'null') displayName += `-${curColor}`;
-    if (curSize !== 'null') displayName += `-${curSize}`;
+    const colorName = colors.find((c) => c.id === curColor)?.name || curColor;
+    const sizeName = sizes.find((s) => s.id === curSize)?.name || curSize;
+    if (curColor !== 'null') displayName += ` - ${colorName}`;
+    if (curSize !== 'null') displayName += ` - ${sizeName}`;
 
     addToCart({
       productVariantId: variantId,
@@ -199,7 +243,8 @@ const DetailOne: React.FC<DetailOneProps> = ({
         name: displayName,
         price: basePrice,
         pictures: productData.pictures,
-        image: variant?.pictures?.[0]?.url ?? productData.pictures?.[0]?.url ?? null,
+        image: variant?.assets?.[0]?.preview || productData.pictures?.[0]?.url || null,
+        variant,
       },
     });
   };

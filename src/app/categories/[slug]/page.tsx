@@ -41,7 +41,8 @@ async function fetchVendureProductsForCategory(slug: string, search?: string, op
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, variables: { term: search || null, collectionSlug: slug, take: opts?.take ?? 24, skip: opts?.skip ?? 0 } }),
-    next: { revalidate: 30 }
+    // next: { revalidate: 30 }
+    cache: 'no-store'
   });
   const json = await res.json();
   const items: VendureSearchItem[] = json?.data?.search?.items || [];

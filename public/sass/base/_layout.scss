@@ -35,3 +35,106 @@
 .list-unstyled {
     list-style: none;
 }
+
+.opacity-25 {
+    opacity: 0.25;
+}
+
+.text-green {
+    color: green;
+}
+
+// table table-striped table-order-items mb-0
+.table-order-items {
+    @include css(border-radius, base, _table-border-radius);
+    @include css(border-radius, base, _table-border-radius);
+
+    border: solid 1px #ddd;
+
+    th {
+        background-color: #f5f5f5;
+        padding: .5rem 1rem;
+        text-align: left;
+    }
+    td {
+        padding: .5rem 1rem;
+    }
+}
+
+
+
+.product-variations {
+  .color {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    margin: 4px;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+
+  .color[data-color="BLACK"] {
+    background-color: #000!important;
+  }
+
+  .color[data-color="WHITE"] {
+    background-color: #fff!important;
+    border: 1px solid #ddd!important;
+  }
+
+  .color[data-color="NAVY"] {
+    background-color: #001f3f!important; // Màu xanh navy
+  }
+
+  .color[data-color="SPORT GREY"] {
+    background-color: #b5b5b5!important; // Màu xám sáng
+  }
+
+  .color[data-color="LIGHT BLUE"] {
+    background-color: #add8e6!important; // Màu xanh nhạt
+  }
+
+  .color[data-color="RED"] {
+    background-color: #e60000!important; // Màu đỏ nổi bật
+  }
+
+  .color[data-color="NATURAL"] {
+    background-color: #f5f5dc!important; // Màu tự nhiên, beige
+  }
+
+  .color[data-color="DARK HEATHER"] {
+    background-color: #3a3a3a!important; // Màu xám đậm
+  }
+
+  .color[data-color="MILITARY GREEN"] {
+    background-color: #4b5320!important; // Màu xanh rêu quân đội
+  }
+
+  .color[data-color="HEATHER GREY"] {
+    background-color: #dcdcdc!important; // Màu xám heather
+  }
+
+  .color[data-color="GOLD"] {
+    background-color: #ffd700!important; // Màu vàng gold
+  }
+
+  .color[data-color="TURQUOISE"] {
+    background-color: #40e0d0!important; // Màu xanh ngọc
+  }
+
+  // Hiệu ứng khi chọn
+  .color.active {
+    outline: 2px solid #000;
+    outline-offset: 2px;
+  }
+}
+
+
+.text-white {
+    color: #fff;
+}
