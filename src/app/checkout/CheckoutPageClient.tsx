@@ -1,30 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import ALink from '~/components/features/custom-link';
 import { useCart } from '@/context/cart/CartContext';
 import { useMutation, useQuery } from '@apollo/client/react';
 import { toast } from 'react-toastify';
 
-import {
-  ADD_PAYMENT_TO_ORDER,
-  ELIGIBLE_COUNTRIES,
-  ELIGIBLE_PAYMENT_METHODS,
-  ELIGIBLE_SHIPPING_METHODS,
-  SET_CUSTOMER_FOR_ORDER,
-  SET_ORDER_SHIPPING_ADDRESS,
-  SET_ORDER_SHIPPING_METHOD,
-} from '@/graphql/cart';
+import { ELIGIBLE_COUNTRIES, ELIGIBLE_SHIPPING_METHODS, SET_CUSTOMER_FOR_ORDER, SET_ORDER_SHIPPING_ADDRESS, SET_ORDER_SHIPPING_METHOD } from '@/graphql/cart';
 import { toDecimal } from '~/utils';
-import { Elements } from '@stripe/react-stripe-js';
-import { useStripePayment, stripePromise } from '@/hooks/useStripePayment';
-import { StripePaymentSection } from '@/components/checkout/StripePaymentSection';
-import { redirect } from 'next/navigation';
 import { AddressForm, AddressFormValues } from '@/components/checkout/AddressForm';
 
 function CheckoutPageClient() {
+  const router = useRouter();
   const { order, items, refetch } = useCart();
   const [useDifferentAddress, setUseDifferentAddress] = useState(false);
+
+  useEffect(() => {
+    const lineCount = order?.lines?.length ?? items.length;
+    if (!lineCount) {
+      router.push('/cart');
+    }
+  }, [items.length, order?.lines?.length, router]);
 
   const defaultAddress: AddressFormValues = {
     firstName: '',
@@ -45,13 +42,9 @@ function CheckoutPageClient() {
   const { data: countriesData } = useQuery<{ availableCountries: { code: string; name: string }[] }>(ELIGIBLE_COUNTRIES);
   const { data: shippingData, loading: shippingLoading } = useQuery<{ eligibleShippingMethods: any[] }>(ELIGIBLE_SHIPPING_METHODS);
   const shippingMethods = shippingData?.eligibleShippingMethods ?? [];
-  const { data: paymentData, loading: paymentLoading } = useQuery<{ eligiblePaymentMethods: any[] }>(ELIGIBLE_PAYMENT_METHODS);
-  const paymentMethods = (paymentData?.eligiblePaymentMethods ?? []).filter((method: any) => method?.isEligible !== false);
-
   const [setShippingAddress, { loading: savingAddress }] = useMutation(SET_ORDER_SHIPPING_ADDRESS);
   const [setShippingMethod, { loading: settingShipping }] = useMutation(SET_ORDER_SHIPPING_METHOD);
   const [setCustomerForOrderMutation] = useMutation(SET_CUSTOMER_FOR_ORDER);
-  const [addPaymentToOrder, { loading: addingPayment }] = useMutation(ADD_PAYMENT_TO_ORDER);
 
   useEffect(() => {
     const shippingAddress = order?.shippingAddress;
@@ -81,36 +74,19 @@ function CheckoutPageClient() {
   }, [order?.shippingAddress, useDifferentAddress]);
 
   const [selectedShippingId, setSelectedShippingId] = useState<string | null>(null);
-  const [selectedPaymentCode, setSelectedPaymentCode] = useState<string | null>(null);
-
   const [emailAddress, setEmailAddress] = useState('');
-  const [customerReady, setCustomerReady] = useState(false);
 
   useEffect(() => {
     if (!order?.id) {
       setEmailAddress('');
-      setCustomerReady(false);
       return;
     }
     const savedEmail = order?.customer?.emailAddress ?? '';
     setEmailAddress(savedEmail);
-    setCustomerReady(Boolean(savedEmail));
   }, [order?.id, order?.customer?.emailAddress]);
-
-  useEffect(() => {
-    if (!customerReady && selectedPaymentCode) {
-      setSelectedPaymentCode(null);
-    }
-  }, [customerReady, selectedPaymentCode]);
 
   const handleEmailChange = (value: string) => {
     setEmailAddress(value);
-    if (customerReady) {
-      const saved = (order?.customer?.emailAddress ?? '').trim();
-      if (value.trim() !== saved) {
-        setCustomerReady(false);
-      }
-    }
   };
 
   const billingComplete =
@@ -122,23 +98,6 @@ function CheckoutPageClient() {
     emailAddress.trim();
   const shippingForm = useDifferentAddress ? shippingAddressOverride : billingAddress;
   const shippingComplete = shippingForm.firstName && shippingForm.lastName && shippingForm.address1 && shippingForm.city && shippingForm.countryCode;
-
-  const {
-    stripeClientSecret,
-    stripeLoading,
-    stripeStatusMessage,
-    creatingStripeIntent,
-    handlePaymentSelection,
-    handleStripeRetry,
-    confirmPayment,
-    registerConfirmHandler,
-    stripeReady,
-  } = useStripePayment({
-    order,
-    selectedPaymentCode,
-    setSelectedPaymentCode,
-    enabled: Boolean(order && billingComplete && shippingComplete && order.shippingLines?.length && order.totalWithTax),
-  });
 
   useEffect(() => {
     const current = order?.shippingLines?.[0]?.shippingMethod?.id ?? null;
@@ -197,7 +156,6 @@ function CheckoutPageClient() {
   ) => {
     setter((prev) => {
       if (prev[field] === value) return prev;
-      setCustomerReady(false);
       return { ...prev, [field]: value };
     });
   };
@@ -288,8 +246,6 @@ function CheckoutPageClient() {
       }
 
       lastSavedKeyRef.current = addressKey;
-      setCustomerReady(true);
-
       let refreshedOrder: any | null = order;
       try {
         const result = await refetch();
@@ -336,55 +292,6 @@ function CheckoutPageClient() {
     })();
   }, [order?.id, selectedShippingId, shippingLoading, shippingMethods, setShippingMethod, billingComplete, shippingComplete, saveCheckoutDetails]);
 
-  const handlePaymentMethodChange = useCallback(
-    async (code: string) => {
-      if (!customerReady) {
-        toast.info('Please finish your information before choosing a payment method.');
-        return;
-      }
-
-      if (selectedPaymentCode !== code) {
-        setSelectedPaymentCode(code);
-      }
-
-      const saveResult = await saveCheckoutDetails({ silent: true });
-      if (!saveResult.success) {
-        return;
-      }
-      const latestOrder = saveResult.order ?? order;
-
-      if (code === 'stripe') {
-        if (!latestOrder?.shippingLines?.length) {
-          toast.error('Select a shipping method before paying with Stripe.');
-          return;
-        }
-        if ((latestOrder?.totalWithTax ?? 0) <= 0) {
-          toast.error('Order total must be greater than zero before paying with Stripe.');
-          return;
-        }
-        if (!latestOrder?.lines?.length) {
-          toast.error('Your cart is empty.');
-          return;
-        }
-        await handlePaymentSelection('stripe', { force: true });
-      } else {
-        await handlePaymentSelection(code);
-      }
-    },
-    [handlePaymentSelection, order, saveCheckoutDetails, selectedPaymentCode]
-  );
-
-  useEffect(() => {
-    if (selectedPaymentCode) return;
-    if (!customerReady) return;
-    const preset = order?.payments?.[0]?.method ?? null;
-    const stripeOption = paymentMethods.find((method: any) => method?.code === 'stripe')?.code ?? null;
-    const fallback = paymentMethods[0]?.code ?? null;
-    const next = preset || stripeOption || fallback;
-    if (!next) return;
-    void handlePaymentMethodChange(next);
-  }, [order?.payments, paymentMethods, selectedPaymentCode, handlePaymentMethodChange]);
-
   const handleShippingChange = async (shippingMethodId: string) => {
     if (!order) {
       toast.error('No active order. Please review your cart.');
@@ -392,62 +299,22 @@ function CheckoutPageClient() {
       return;
     }
     setSelectedShippingId(shippingMethodId);
-    setCustomerReady(false);
     try {
       await setShippingMethod({ variables: { shippingMethodId: [shippingMethodId] } });
       toast.success('Shipping method updated.');
-      // If Stripe is selected, refresh its PaymentIntent to match new totals
-      if (selectedPaymentCode === 'stripe') {
-        await handlePaymentSelection('stripe', { force: true });
-      }
       await refetch();
     } catch (error: any) {
       toast.error(error?.message || 'Failed to update shipping.');
     }
   };
 
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!acceptedTerms) {
-      toast.error('Please agree to the terms and conditions before continuing.');
-      return;
-    }
-    const saveResult = await saveCheckoutDetails({ silent: selectedPaymentCode === 'stripe' });
+    const saveResult = await saveCheckoutDetails();
     if (!saveResult.success) {
       return;
     }
-    const latestOrder = saveResult.order ?? order;
-
-    if (selectedPaymentCode && selectedPaymentCode !== 'stripe') {
-      try {
-        const { data } = await addPaymentToOrder({ variables: { input: { method: selectedPaymentCode, metadata: {} } } });
-        const result = (data as any)?.addPaymentToOrder;
-        if (result?.__typename && result.__typename !== 'Order') {
-          toast.error(result?.message || 'Payment could not be added.');
-          return;
-        }
-        if (!result) {
-          toast.error('Payment could not be added.');
-          return;
-        }
-        // await clearCartIfOrderCompleted();
-        toast.success('Checkout details saved.');
-      } catch (error: any) {
-        toast.error(error?.message || 'Payment could not be added.');
-      }
-      return;
-    }
-
-    if (selectedPaymentCode === 'stripe') {
-      try {
-        await handlePaymentSelection('stripe', { force: true });
-        await confirmPayment();
-      } catch (error: any) {
-        toast.error(error?.message || 'Payment could not be processed.');
-      }
-    }
+    router.push('/checkout/payment');
   };
 
   // useEffect(() => {
@@ -464,7 +331,8 @@ function CheckoutPageClient() {
         <div className="step-by pr-4 pl-4">
           <h3 className="title title-simple title-step"><ALink href="/cart">1. Shopping Cart</ALink></h3>
           <h3 className="title title-simple title-step active"><ALink href="#">2. Checkout</ALink></h3>
-          <h3 className="title title-simple title-step"><ALink href="/order">3. Order Complete</ALink></h3>
+          <h3 className="title title-simple title-step"><ALink href="/checkout/payment">3. Payment</ALink></h3>
+          <h3 className="title title-simple title-step"><ALink href="/order">4. Order Complete</ALink></h3>
         </div>
         <div className="container mt-7">
           {items.length > 0 ? (
@@ -617,143 +485,20 @@ function CheckoutPageClient() {
                           </tbody>
                         </table>
 
-                        <div className="payment accordion radio-type">
-                          <div className="d-flex align-items-center justify-content-between">
-                            <h4 className="summary-subtitle ls-m pb-3 mb-0">Payment Methods</h4>
 
-                          </div>
-
-                          {!customerReady && (
-                            <span className="text-green small">Please finish your information to enable payments.</span>
-                          )}
-
-                          {paymentLoading ? (
-                            <p className="text-grey mb-0">Loading payment methods…</p>
-                          ) : paymentMethods.length > 0 ? (
-                            <ul className="list-unstyled mb-0 p-0">
-                              {paymentMethods.map((method: any) => {
-                                const checked = selectedPaymentCode === method.code;
-                                return (
-                                  <li key={method.code} className="mb-2">
-                                    <div className={`custom-radio ${!customerReady ? 'opacity-25' : ''}`}>
-                                      <input
-                                        type="radio"
-                                        id={`payment-${method.code}`}
-                                        name="payment-method"
-                                        className="custom-control-input"
-                                        checked={checked}
-                                        onChange={() => handlePaymentMethodChange(method.code)}
-                                        disabled={addingPayment || !customerReady}
-                                      />
-                                      <label className="custom-control-label" htmlFor={`payment-${method.code}`}>
-                                        {method.name || method.code}
-                                      </label>
-                                    </div>
-                                    {method.description && (
-                                      <p className={`text-body lh-base mb-0 ml-4 ${!customerReady ? 'opacity-75' : ''}`}>
-                                        {method.description}
-                                      </p>
-                                    )}
-                                    {method.eligibilityMessage && (
-                                      <p className="text-danger mb-0 ml-4">{method.eligibilityMessage}</p>
-                                    )}
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          ) : (
-                            <p className="text-grey mb-0">No payment methods available.</p>
-                          )}
-                          {customerReady && selectedPaymentCode === 'stripe' ? (
-                            stripePromise ? (
-                              stripeClientSecret ? (
-                                <div className="mt-4">
-                                  <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
-                                    <StripePaymentSection
-                                      orderCode={order?.code}
-                                      registerConfirmHandler={registerConfirmHandler}
-                                    />
-                                  </Elements>
-                                </div>
-                              ) : (
-                                <div className="mt-3">
-                                  <p className={`mb-2 ${stripeStatusMessage ? 'text-danger' : 'text-grey'}`}>
-                                    {stripeStatusMessage ?? 'Preparing Stripe payment…'}
-                                  </p>
-                                  {stripeStatusMessage && (
-                                    <button
-                                      type="button"
-                                      className="btn btn-outline btn-dark btn-sm btn-rounded"
-                                      onClick={handleStripeRetry}
-                                      disabled={stripeLoading || creatingStripeIntent}
-                                    >
-                                      Try again
-                                    </button>
-                                  )}
-                                </div>
-                              )
-                            ) : (
-                              <p className="text-danger mt-3 mb-0">Stripe publishable key is not configured.</p>
-                            )
-                          ) : null}
-                        </div>
-
-                        <div className="form-checkbox mt-4 mb-5">
-                          <input
-                            type="checkbox"
-                            className="custom-checkbox"
-                            id="terms-condition"
-                            name="terms-condition"
-                            checked={acceptedTerms}
-                            onChange={(event) => setAcceptedTerms(event.target.checked)}
-                          />
-                          <label className="form-control-label" htmlFor="terms-condition">
-                            I have read and agree to the website <ALink href="/terms-of-service">terms and conditions </ALink>*
-                          </label>
-                        </div>
-{/* 
-                        {JSON.stringify({
-                          order,
-                          savingAddress,
-                          settingShipping,
-                          addingPayment,
-                          paymentMethods,
-                          selectedPaymentCode,
-                          stripeClientSecret,
-                          stripeReady,
-                          stripeLoading,
-                        })} */}
-
+                        <p className="text-grey mt-4 mb-4">
+                          Payment method selection will be available on the next step.
+                        </p>
                         <button
                           type="submit"
                           className="btn btn-dark btn-rounded btn-order"
-                          data-reason={JSON.stringify({
-                            order: !!order,
-                            savingAddress,
-                            settingShipping,
-                            addingPayment,
-                            paymentMethods,
-                            selectedPaymentCode,
-                            stripeClientSecret,
-                            stripeReady,
-                            stripeLoading,
-                          })}
                           disabled={
                             !order ||
                             savingAddress ||
-                            settingShipping ||
-                            addingPayment ||
-                            !customerReady ||
-                            (paymentMethods.length > 0 && !selectedPaymentCode) ||
-                            (selectedPaymentCode === 'stripe' && (!stripeClientSecret || !stripeReady || stripeLoading))
+                            settingShipping
                           }
                         >
-                          {(() => {
-                            if (savingAddress || settingShipping || addingPayment || stripeLoading) {
-                              return 'Processing...';
-                            }
-                            return selectedPaymentCode === 'stripe' ? 'Save & Pay with Stripe' : 'Save & Continue';
-                          })()}
+                          {savingAddress || settingShipping ? 'Processing…' : 'Save & Continue to Payment'}
                         </button>
                       </div>
                     </div>
@@ -776,12 +521,4 @@ function CheckoutPageClient() {
   );
 }
 
-export default function CheckoutPage() {
-  const { order } = useCart();
-
-  if (order?.lines?.length === 0) {
-    return redirect('/cart');
-  }
-
-  return <CheckoutPageClient />
-}
+export default CheckoutPageClient;

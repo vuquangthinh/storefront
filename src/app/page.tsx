@@ -60,7 +60,7 @@ const COLLECTION_CONFIG = {
     title: "Gifts",
     bannerSubTitle: "Gift Ideas",
     bannerTitle: "Perfect Presents<br />For Everyone",
-    url: "/images/home/banner/1.jpg",
+    url: "/images/home/banner/2.png",
     btnAdClass: "",
     adClass: "mt-10 pt-6",
   },
@@ -69,7 +69,7 @@ const COLLECTION_CONFIG = {
     title: "Hoodies",
     bannerSubTitle: "Stay Warm",
     bannerTitle: "Cozy Hoodies<br />For Every Season",
-    url: "/images/home/banner/2.jpg",
+    url: "/images/home/banner/2.png",
     btnAdClass: "mb-1",
     adClass: "mt-10 pt-5",
   },
@@ -78,7 +78,7 @@ const COLLECTION_CONFIG = {
     title: "T-Shirts",
     bannerSubTitle: "Fresh Drops",
     bannerTitle: "Everyday Tees<br />You'll Love",
-    url: "/images/home/banner/3.jpg",
+    url: "/images/home/banner/2.png",
     btnAdClass: "",
     adClass: "mt-10 pt-6",
   },
@@ -166,7 +166,7 @@ async function fetchProductsFromVendure(options: {
 
 export default function Page() {
   const demoProducts = useMemo(
-    () => DEMO_PRODUCTS.map(mapDemoProduct),
+    () => [], // DEMO_PRODUCTS.map(mapDemoProduct),
     []
   );
 

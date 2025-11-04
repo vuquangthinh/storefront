@@ -43,7 +43,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         return [...prev, item];
       });
     },
-    isWishlisted: (slug: string) => items.some((p) => p.slug === slug),
+    isWishlisted: (slug: string) => Array.isArray(items) ? items.some((p) => p.slug === slug) : false,
   }), [items]);
 
   return <WishlistContext.Provider value={ctx}>{children}</WishlistContext.Provider>;
