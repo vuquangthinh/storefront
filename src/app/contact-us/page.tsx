@@ -65,7 +65,7 @@ export default function Page() {
             <div className="row gutter-lg">
               <div className="col-lg-6">
                 <h2 className="title title-simple">Send us a message</h2>
-                <form action={`mailto:${CONTACT_INFO.email}`} method="post" className="contact-form">
+                <form action="/api/contact" method="post" className="contact-form">
                   <div className="row">
                     <div className="col-md-6 mb-4">
                       <input type="text" className="form-control" name="name" placeholder="Your Name" required />
@@ -81,7 +81,81 @@ export default function Page() {
                     <textarea className="form-control" name="message" rows={5} placeholder="How can we help?" required></textarea>
                   </div>
                   <button type="submit" className="btn btn-dark btn-rounded">Send message</button>
+                  <div id="contact-status" className="alert mt-4" style={{ display: 'none' }}></div>
                 </form>
+                <script src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}></script>
+                <script dangerouslySetInnerHTML={{ __html: `
+                (function(){
+                  function init(){
+                    var form = document.querySelector('form.contact-form');
+                    if(!form) return;
+                    var btn = form.querySelector('button[type="submit"]');
+                    var statusEl = document.getElementById('contact-status');
+                    function setStatus(text, variant){
+                      if(!statusEl) return;
+                      statusEl.style.display = 'block';
+                      statusEl.className = 'alert mt-4 ' + (variant === 'success' ? 'alert-success' : 'alert-danger');
+                      statusEl.textContent = text;
+                    }
+                
+                    form.addEventListener('submit', function(e){
+                      e.preventDefault();
+                      var siteKey = '${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''}';
+                      var payload = {
+                        name: form.name ? form.name.value : '',
+                        email: form.email ? form.email.value : '',
+                        subject: form.subject ? form.subject.value : '',
+                        message: form.message ? form.message.value : ''
+                      };
+                      if(!payload.name || !payload.email || !payload.message){
+                        setStatus('Vui lòng điền đầy đủ họ tên, email và nội dung.', 'error');
+                        return;
+                      }
+                      if(btn){ btn.disabled = true; btn.classList.add('loading'); }
+                
+                      function submitWithToken(token){
+                        if(token) payload.recaptchaToken = token;
+                        fetch('/api/contact', {
+                          method: 'POST',
+                          headers: { 'content-type': 'application/json' },
+                          body: JSON.stringify(payload)
+                        })
+                        .then(function(res){
+                          return res.json().catch(function(){ return { ok: res.ok, error: 'Lỗi phân tích JSON' }; });
+                        })
+                        .then(function(data){
+                          if(data && data.ok){
+                            setStatus('Gửi liên hệ thành công. Cảm ơn bạn!', 'success');
+                            form.reset();
+                          } else {
+                            setStatus((data && data.error) ? data.error : 'Gửi liên hệ thất bại.', 'error');
+                          }
+                        })
+                        .catch(function(err){
+                          setStatus('Lỗi mạng: ' + (err && err.message ? err.message : String(err)), 'error');
+                        })
+                        .finally(function(){
+                          if(btn){ btn.disabled = false; btn.classList.remove('loading'); }
+                        });
+                      }
+                
+                      if(!siteKey || typeof window.grecaptcha === 'undefined'){
+                        submitWithToken(undefined);
+                        return;
+                      }
+                      window.grecaptcha.ready(function(){
+                        window.grecaptcha.execute(siteKey, { action: 'contact' })
+                          .then(function(token){ submitWithToken(token); })
+                          .catch(function(){ submitWithToken(undefined); });
+                      });
+                    });
+                  }
+                  if(document.readyState === 'loading'){
+                    document.addEventListener('DOMContentLoaded', init);
+                  } else { init(); }
+                })();
+                ` }} />
+                
               </div>
               <div className="col-lg-6">
                 <h2 className="title title-simple">Order & fulfillment</h2>

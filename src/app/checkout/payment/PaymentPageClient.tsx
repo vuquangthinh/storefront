@@ -41,7 +41,6 @@ function PaymentPageClient() {
     if (!order || isLoading) {
       return;
     }
-    
     if (!order.lines?.length || !order.shippingAddress || !(order.shippingLines?.length)) {
       router.push('/checkout');
     }
@@ -74,6 +73,7 @@ function PaymentPageClient() {
 
   const handlePaymentMethodChange = useCallback(
     async (code: string) => {
+      debugger
       if (!order) {
         toast.error('Order not ready. Please go back and review your checkout details.');
         router.push('/checkout');
@@ -399,8 +399,6 @@ function PaymentPageClient() {
                       return selectedPaymentCode === 'stripe' ? 'Pay with Stripe' : 'Complete Order';
                     })()}
                   </button>
-
-                  <div style={{ height: '10px' }} />
 
                   <button
                     type="button"

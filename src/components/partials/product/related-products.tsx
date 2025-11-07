@@ -4,7 +4,12 @@ import ProductTwo from '~/components/features/product/product-two';
 
 import { relatedProductSlider } from '~/utils/data/carousel';
 
-export default function RelatedProducts ( props ) {
+interface RelatedProductsProps {
+    products: any[];
+    adClass?: string;
+}
+
+export default function RelatedProducts ( props: RelatedProductsProps ) {
     const { products, adClass = "" } = props;
 
     return (
