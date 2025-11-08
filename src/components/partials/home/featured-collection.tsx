@@ -1,49 +1,37 @@
+"use client";
 import React from 'react';
-import Reveal from 'react-awesome-reveal';
-
 import ALink from '~/components/features/custom-link';
-import OwlCarousel from '~/components/features/owl-carousel';
 
 import ProductTwo from '~/components/features/product/product-two';
+import { useQuickview } from '@/context/quickview/QuickviewContext';
 
-import { productSlider } from '~/utils/data/carousel';
-import { fadeIn } from '~/utils/data/keyframes';
-
-type FeaturedCollectionProps = {
-  products?: any[];
-  loading?: boolean;
-};
-
-const skeletonItems = [1, 2, 3, 4, 5];
-
-const FeaturedCollection: React.FC<FeaturedCollectionProps> = ({ products = [], loading = false }) => {
+function FeaturedCollection(props: { products: any[]; loading?: boolean }) {
+  const { products, loading } = props;
+  const { openQuickview } = useQuickview();
   return (
-    <Reveal keyframes={fadeIn} delay={300} duration={1200} triggerOnce>
-      <section className="product-wrapper container mt-10 pt-5">
-        <h2 className="title title-simple text-left with-link">
-          Our Featured
-          <ALink href="/products">
-            View All Products
-            <i className="d-icon-arrow-right"></i>
-          </ALink>
-        </h2>
-
+    <section className="product-wrapper container mt-10 pt-6">
+      <h2 className="title title-simple text-left with-link">Featured Products<ALink href="/products">View All Products<i className="d-icon-arrow-right"></i></ALink></h2>
+      <div className="product-grid row gutter-sm">
         {loading ? (
-          <OwlCarousel adClass="owl-theme" options={productSlider}>
-            {skeletonItems.map((item) => (
-              <div className="product-loading-overlay" key={`featured-skel-${item}`} />
+          <>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div className="height-x1" key={`featured-skel-${i}`}>
+                <div className="product-loading-overlay"></div>
+              </div>
             ))}
-          </OwlCarousel>
+          </>
         ) : (
-          <OwlCarousel adClass="owl-theme" options={productSlider}>
-            {products.map((item, index) => (
-              <ProductTwo product={item} key={`featured-product-${index}`} isRatingText={false} />
+          <>
+            {products && products.slice(0, 8).map((item, index) => (
+              <div className="height-x1" key={`featured-product-${index}`}>
+                <ProductTwo product={item} isRatingText={false} openQuickview={openQuickview} />
+              </div>
             ))}
-          </OwlCarousel>
+          </>
         )}
-      </section>
-    </Reveal>
+      </div>
+    </section>
   );
-};
+}
 
 export default React.memo(FeaturedCollection);

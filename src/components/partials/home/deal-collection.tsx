@@ -9,9 +9,11 @@ import ProductTwo from '~/components/features/product/product-two';
 
 import { productSlider } from '~/utils/data/carousel';
 import { fadeIn } from '~/utils/data/keyframes';
+import { useQuickview } from '@/context/quickview/QuickviewContext';
 
 function BestCollection ( props ) {
     const { products, loading } = props;
+    const { openQuickview } = useQuickview();
     let time = 10 * 3600000;
 
     return (
@@ -48,6 +50,7 @@ function BestCollection ( props ) {
                                         product={ item }
                                         isRatingText={ false }
                                         key={ `best-selling-product ${ index }` }
+                                        openQuickview={openQuickview}
                                     />
                                 )
                             }

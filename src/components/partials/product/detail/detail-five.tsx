@@ -16,6 +16,63 @@ import { toDecimal } from '~/utils';
 import limitedOfferStyles from '@/components/features/limited-offer-countdown.module.scss';
 import viewerCountStyles from '@/components/features/viewer-count-badge.module.scss';
 
+// ---------- Types ----------
+interface VariantOptionGroup {
+  id: string;
+  name: string;
+  code?: string | null;
+}
+
+interface VariantOption {
+  id: string;
+  name: string;
+  code?: string | null;
+  group?: VariantOptionGroup | null;
+}
+
+interface ProductVariant {
+  id?: string;
+  name?: string;
+  priceWithTax?: number;
+  stockLevel?: string;
+  assets?: { preview?: string | null }[];
+  options?: VariantOption[];
+  size?: { name: string; size: string } | null;
+  color?: { name: string; color: string } | null;
+  price?: number;
+  sale_price?: number;
+  pictures?: { url: string }[];
+}
+
+interface ProductCategory {
+  name: string;
+  slug: string;
+}
+
+interface ProductData {
+  slug: string;
+  name: string;
+  sku: string;
+  price: [number, number];
+  short_description?: string;
+  pictures?: { url: string }[];
+  categories: ProductCategory[];
+  variants: ProductVariant[];
+  stock: number;
+}
+
+interface ProductWrapper {
+  data: ProductData;
+}
+
+interface DetailOneProps {
+  data: { product: ProductWrapper };
+  isSticky?: boolean;
+  isDesc?: boolean;
+  isProductNav?: boolean;
+  isGuide?: boolean;
+}
+
 const LimitedOfferCountdown = dynamic(() => import('@/components/features/limited-offer-countdown'), {
     ssr: false,
     loading: () => (
@@ -60,33 +117,33 @@ function Collapse({ in: open, children }: { in: boolean; children: React.ReactNo
     return open ? <>{children}</> : null;
 }
 
-function DetailOne(props: any) {
+function DetailOne(props: DetailOneProps) {
     const router = useRouter();
     const { data, isSticky = false, isDesc = false, isProductNav = true, isGuide = false } = props;
     const { addToCart } = useCart();
     const { toggleWishlist, isWishlisted } = useWishlist();
-    const [curColor, setCurColor] = useState('null');
-    const [curSize, setCurSize] = useState('null');
-    const [curIndex, setCurIndex] = useState(0);
-    const [cartActive, setCartActive] = useState(false);
-    const [quantity, setQuantity] = useState(1);
-    let product = data && data.product;
+    const [curColor, setCurColor] = useState<string>('null');
+    const [curSize, setCurSize] = useState<string>('null');
+    const [curIndex, setCurIndex] = useState<number>(0);
+    const [cartActive, setCartActive] = useState<boolean>(false);
+    const [quantity, setQuantity] = useState<number>(1);
+    const product: ProductWrapper = data && data.product;
 
     // decide if the product is wishlisted
-    let colors: Array<{ name: string; value: any }> = [], sizes: Array<{ name: string; value: any }> = [];
+    let colors: Array<{ name: string; value: string }> = [], sizes: Array<{ name: string; value: string }> = [];
     const wish = isWishlisted(product.data.slug);
 
     if (product.data && product.data.variants.length > 0) {
         if (product.data.variants[0].size)
-            product.data.variants.forEach((item: any) => {
-                if (sizes.findIndex(size => size.name === item.size.name) === -1) {
+            product.data.variants.forEach((item: ProductVariant) => {
+                if (item.size && sizes.findIndex(size => size.name === item.size!.name) === -1) {
                     sizes.push({ name: item.size.name, value: item.size.size });
                 }
             });
 
         if (product.data.variants[0].color) {
-            product.data.variants.forEach((item: any) => {
-                if (colors.findIndex(color => color.name === item.color.name) === -1)
+            product.data.variants.forEach((item: ProductVariant) => {
+                if (item.color && colors.findIndex(color => color.name === item.color!.name) === -1)
                     colors.push({ name: item.color.name, value: item.color.color });
             });
         }
@@ -102,7 +159,9 @@ function DetailOne(props: any) {
         if (product.data.variants.length > 0) {
             if ((curSize !== 'null' && curColor !== 'null') || (curSize === 'null' && product.data.variants[0].size === null && curColor !== 'null') || (curColor === 'null' && product.data.variants[0].color === null && curSize !== 'null')) {
                 setCartActive(true);
-                setCurIndex(product.data.variants.findIndex((item: any) => (item.size !== null && item.color !== null && item.color.name === curColor && item.size.name === curSize) || (item.size === null && item.color.name === curColor) || (item.color === null && item.size.name === curSize)));
+                setCurIndex(product.data.variants.findIndex((item: ProductVariant) => (
+                    item.size !== null && item.color !== null && item.color!.name === curColor && item.size!.name === curSize
+                ) || (item.size === null && item.color!.name === curColor) || (item.color === null && item.size!.name === curSize)));
             } else {
                 setCartActive(false);
             }
@@ -110,7 +169,7 @@ function DetailOne(props: any) {
             setCartActive(true);
         }
 
-        if (product.stock === 0) {
+        if (product.data.stock === 0) {
             setCartActive(false);
         }
     }, [curColor, curSize, product])
@@ -187,14 +246,14 @@ function DetailOne(props: any) {
         if (color === 'null' || size === 'null') return false;
 
         if (sizes.length === 0) {
-            return product.data.variants.findIndex((item: any) => item.color.name === curColor) === -1;
+            return product.data.variants.findIndex((item: ProductVariant) => item.color?.name === curColor) === -1;
         }
 
         if (colors.length === 0) {
-            return product.data.variants.findIndex((item: any) => item.size.name === curSize) === -1;
+            return product.data.variants.findIndex((item: ProductVariant) => item.size?.name === curSize) === -1;
         }
 
-        return product.data.variants.findIndex((item: any) => item.color.name === color && item.size.name === size) === -1;
+        return product.data.variants.findIndex((item: ProductVariant) => item.color?.name === color && item.size?.name === size) === -1;
     }
 
     function changeQty(qty: number) {
@@ -202,53 +261,54 @@ function DetailOne(props: any) {
     }
 
     return (
-        <div className={`product-details ${isSticky ? 'sticky' : ''}`}>
-            {
-                isProductNav ?
-                    <div className="product-navigation">
-                        <ul className="breadcrumb breadcrumb-lg">
-                            <li><ALink href="/"><i className="d-icon-home"></i></ALink></li>
-                            <li><ALink href="/products" className="active">Products</ALink></li>
-                            <li>{product.data.name}</li>
-                        </ul>
-
-                        <ProductNav product={product} />
-                    </div> : ''
-            }
-
-            <h2 className="product-name">{product.data.name}</h2>
-
-            <div className='product-meta'>
-                SKU: <span className='product-sku'>{product.data.sku}</span>
-                CATEGORIES: <span className='product-brand'>
-                    {
-                        product.data.categories.map((item: any, index: number) =>
-                            <React.Fragment key={item.name + '-' + index}>
-                                <ALink href={`/categories/${item.slug}`}>
-                                    {item.name}
-                                </ALink>
-                                {index < product.data.categories.length - 1 ? ', ' : ''}
-                            </React.Fragment>
-                        )}
-                </span>
-            </div>
-
-            <div className="product-price">
+        <>
+            <div className={`product-details ${isSticky ? 'sticky' : ''}`}>
                 {
-                    product.data.price[0] !== product.data.price[1] ?
-                        product.data.variants.length === 0 || (product.data.variants.length > 0 && !product.data.variants[0].price) ?
-                            <>
-                                <ins className="new-price">${toDecimal(product.data.price[0])}</ins>
-                                <del className="old-price">${toDecimal(product.data.price[1])}</del>
-                            </>
-                            :
-                            < del className="new-price">${toDecimal(product.data.price[0])} – ${toDecimal(product.data.price[1])}</del>
-                        : <ins className="new-price">${toDecimal(product.data.price[0])}</ins>
+                    isProductNav ?
+                        <div className="product-navigation">
+                            <ul className="breadcrumb breadcrumb-lg">
+                                <li><ALink href="/"><i className="d-icon-home"></i></ALink></li>
+                                <li><ALink href="/products" className="active">Products</ALink></li>
+                                <li>{product.data.name}</li>
+                            </ul>
+
+                            <ProductNav product={product} />
+                        </div> : ''
                 }
-            </div>
+
+                <h2 className="product-name">{product.data.name}</h2>
+
+                <div className='product-meta'>
+                    SKU: <span className='product-sku'>{product.data.sku}</span>
+                    CATEGORIES: <span className='product-brand'>
+                        {
+                            product.data.categories.map((item: ProductCategory, index: number) =>
+                                <React.Fragment key={item.name + '-' + index}>
+                                    <ALink href={`/categories/${item.slug}`}>
+                                        {item.name}
+                                    </ALink>
+                                    {index < product.data.categories.length - 1 ? ', ' : ''}
+                                </React.Fragment>
+                            )}
+                    </span>
+                </div>
+
+                <div className="product-price">
+                    {
+                        product.data.price[0] !== product.data.price[1] ?
+                            product.data.variants.length === 0 || (product.data.variants.length > 0 && !product.data.variants[0].price) ?
+                                <>
+                                    <ins className="new-price">${toDecimal(product.data.price[0])}</ins>
+                                    <del className="old-price">${toDecimal(product.data.price[1])}</del>
+                                </>
+                                :
+                                < del className="new-price">${toDecimal(product.data.price[0])} – ${toDecimal(product.data.price[1])}</del>
+                            : <ins className="new-price">${toDecimal(product.data.price[0])}</ins>
+                    }
+                </div>
 
 
-            {/* <div className="ratings-container">
+                {/* <div className="ratings-container">
                 <div className="ratings-full">
                     <span className="ratings" style={ { width: 20 * product.data.ratings + '%' } }></span>
                     <span className="tooltiptext tooltip-top">{ toDecimal( product.data.ratings ) }</span>
@@ -257,137 +317,134 @@ function DetailOne(props: any) {
                 <ALink href="#" className="rating-reviews">( { product.data.reviews } reviews )</ALink>
             </div> */}
 
-            <p className="product-short-desc">{product.data.short_description}</p>
+                <p className="product-short-desc">{product.data.short_description}</p>
 
 
 
-            {
-                product && product.data.variants.length > 0 ?
-                    <>
-                        {
-                            product.data.variants[0].color ?
-                                <div className='product-form product-color'>
-                                    <label>Color:</label>
+                {
+                    product && product.data.variants.length > 0 ?
+                        <>
+                            {
+                                product.data.variants[0].color ?
+                                    <div className='product-form product-color'>
+                                        <label>Color:</label>
 
-                                    <div className="product-variations">
-                                        {
-                                            colors.map((item: any) =>
-                                                <ALink href={`#${item.name}`} className={`color ${curColor === item.name ? 'active' : ''} ${isDisabled(item.name, curSize) ? 'disabled' : ''}`} data-color={`${item.value}`.toUpperCase()} key={"color-" + item.name} onClick={() => toggleColorHandler(item)}>
-                                                    {item.name}
-                                                </ALink>)
-                                        }
-                                    </div>
-                                </div> : ''
-                        }
-
-                        {
-                            product.data.variants[0].size ?
-                                <div className='product-form product-size'>
-                                    <label>Size:</label>
-
-                                    <div className="product-form-group">
                                         <div className="product-variations">
                                             {
-                                                sizes.map((item: any) =>
-                                                    <ALink
-                                                        href="#"
-                                                        className={`size ${curSize === item.name ? 'active' : ''} ${isDisabled(curColor, item.name) ? 'disabled' : ''}`}
-                                                        key={"size-" + item.name}
-                                                        onClick={() => toggleSizeHandler(item)}>
+                                                colors.map((item: { name: string; value: string }) =>
+                                                    <ALink href={`#${item.name}`} className={`color ${curColor === item.name ? 'active' : ''} ${isDisabled(item.name, curSize) ? 'disabled' : ''}`} data-color={`${item.value}`.toUpperCase()} key={"color-" + item.name} onClick={() => toggleColorHandler(item)}>
                                                         {item.name}
                                                     </ALink>)
                                             }
                                         </div>
+                                    </div> : ''
+                            }
 
-                                        <Collapse in={'null' !== curColor || 'null' !== curSize}>
-                                            <div className="card-wrapper overflow-hidden reset-value-button w-100 mb-0">
-                                                <ALink href='#' className='product-variation-clean' onClick={() => resetValueHandler()}>Clean All</ALink>
-                                            </div>
-                                        </Collapse>
-                                    </div>
-                                </div> : ''
-                        }
+                            {
+                                product.data.variants[0].size ?
+                                    <div className='product-form product-size'>
+                                        <label>Size:</label>
 
-                        <div className='product-variation-price'>
-                            <Collapse in={cartActive && curIndex > -1}>
-                                <div className="card-wrapper">
-                                    {
-                                        curIndex > -1 ?
-                                            <div className="single-product-price">
+                                        <div className="product-form-group">
+                                            <div className="product-variations">
                                                 {
-                                                    product.data.variants[curIndex].price ?
-                                                        product.data.variants[curIndex].sale_price ?
-                                                            <div className="product-price mb-0">
-                                                                <ins className="new-price">${toDecimal(product.data.variants[curIndex].sale_price)}</ins>
-                                                                <del className="old-price">${toDecimal(product.data.variants[curIndex].price)}</del>
-                                                            </div>
-                                                            : <div className="product-price mb-0">
-                                                                <ins className="new-price">${toDecimal(product.data.variants[curIndex].price)}</ins>
-                                                            </div>
-                                                        : ""
+                                                    sizes.map((item: { name: string; value: string }) =>
+                                                        <ALink
+                                                            href="#"
+                                                            className={`size ${curSize === item.name ? 'active' : ''} ${isDisabled(curColor, item.name) ? 'disabled' : ''}`}
+                                                            key={"size-" + item.name}
+                                                            onClick={() => toggleSizeHandler(item)}>
+                                                            {item.name}
+                                                        </ALink>)
                                                 }
-                                            </div> : ''
-                                    }
-                                </div>
-                            </Collapse>
+                                            </div>
+
+                                            <Collapse in={'null' !== curColor || 'null' !== curSize}>
+                                                <div className="card-wrapper overflow-hidden reset-value-button w-100 mb-0">
+                                                    <ALink href='#' className='product-variation-clean' onClick={() => resetValueHandler()}>Clean All</ALink>
+                                                </div>
+                                            </Collapse>
+                                        </div>
+                                    </div> : ''
+                            }
+
+                            <div className='product-variation-price'>
+                                <Collapse in={cartActive && curIndex > -1}>
+                                    <div className="card-wrapper">
+                                        {
+                                            curIndex > -1 ?
+                                                <div className="single-product-price">
+                                                    {
+                                                        product.data.variants[curIndex].price ?
+                                                            product.data.variants[curIndex].sale_price ?
+                                                                <div className="product-price mb-0">
+                                                                    <ins className="new-price">${toDecimal(product.data.variants[curIndex].sale_price!)}</ins>
+                                                                    <del className="old-price">${toDecimal(product.data.variants[curIndex].price!)}</del>
+                                                                </div>
+                                                                : <div className="product-price mb-0">
+                                                                    <ins className="new-price">${toDecimal(product.data.variants[curIndex].price!)}</ins>
+                                                                </div>
+                                                            : ""
+                                                    }
+                                                </div> : ''
+                                        }
+                                    </div>
+                                </Collapse>
+                            </div>
+
+                        </>
+                        : ''
+                }
+
+                <hr className="product-divider"></hr>
+
+                {product.data.stock > 0 ? (
+
+                    <div className="product-form product-qty">
+                        <label className="d-none">QTY:</label>
+                        <div className="product-form-group">
+                            <Quantity max={product.data.stock} product={product} onChangeQty={(q: number) => changeQty(q)} />
+                            <button className={`btn-product btn-cart text-normal ls-normal font-weight-semi-bold ${cartActive ? '' : 'disabled'}`} onClick={addToCartHandler}><i className='d-icon-bag'></i>Add to Cart</button>
                         </div>
-
-                    </>
-                    : ''
-            }
-
-            <hr className="product-divider"></hr>
-
-            {product.data.stock > 0 ? (
-
-                <div className="product-form product-qty">
-                    <label className="d-none">QTY:</label>
-                    <div className="product-form-group">
-                        <Quantity max={product.data.stock} product={product} onChangeQty={(q: number) => changeQty(q)} />
-                        <button className={`btn-product btn-cart text-normal ls-normal font-weight-semi-bold ${cartActive ? '' : 'disabled'}`} onClick={addToCartHandler}><i className='d-icon-bag'></i>Add to Cart</button>
                     </div>
-                </div>
-            ) : (
-                <div className="product-form product-qty">
-                    <label className="d-none">QTY:</label>
-                    <div className="product-form-group" style={{
-                        fontSize: '3rem',
-                        fontWeight: 'bold',
-                        color: 'red'
-                    }}>
-                        Out of stock
+                ) : (
+                    <div className="product-form product-qty">
+                        <label className="d-none">QTY:</label>
+                        <div className="product-form-group" style={{
+                            fontSize: '3rem',
+                            fontWeight: 'bold',
+                            color: 'red'
+                        }}>
+                            Out of stock
+                        </div>
                     </div>
+                )}
+
+                <div className="mt-3">
+                    <LimitedOfferCountdown />
                 </div>
-            )}
 
-            <div className="mt-3">
-                <LimitedOfferCountdown />
-            </div>
-
-            <div className="mt-2">
-                <ViewerCountBadge />
-            </div>
+                <div className="mt-2">
+                    <ViewerCountBadge />
+                </div>
 
 
-            <hr className="product-divider mb-3"></hr>
+                <hr className="product-divider mb-3"></hr>
 
-            <div className="product-footer">
-                {/* <div className="social-links mr-4">
+                <div className="product-footer">
+                    {/* <div className="social-links mr-4">
                     <ALink href="#" className="social-link social-facebook fab fa-facebook-f"></ALink>
                     <ALink href="#" className="social-link social-twitter fab fa-twitter"></ALink>
                     <ALink href="#" className="social-link social-pinterest fab fa-pinterest-p"></ALink>
                 </div>  */}
-                <span className="d-lg-show"></span> <a href="#" className={`btn-product btn-wishlist`} title={wish ? 'Browse wishlist' : 'Add to wishlist'} onClick={wishlistHandler}>
-                    <i className={wish ? "d-icon-heart-full" : "d-icon-heart"}></i> {
-                        wish ? 'Browse wishlist' : 'Add to Wishlist'
-                    }
-                </a>
+                    <span className="d-lg-show"></span> <a href="#" className={`btn-product btn-wishlist`} title={wish ? 'Browse wishlist' : 'Add to wishlist'} onClick={wishlistHandler}>
+                        <i className={wish ? "d-icon-heart-full" : "d-icon-heart"}></i> {
+                            wish ? 'Browse wishlist' : 'Add to Wishlist'
+                        }
+                    </a>
+                </div>
             </div>
-
-            {
-                isDesc ? <DescThree product={product.data} isGuide={isGuide} /> : ''
-            }
-        </div >
+        </>
     )
 }
 

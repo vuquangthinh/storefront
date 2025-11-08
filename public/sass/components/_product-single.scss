@@ -442,6 +442,7 @@
 // Product Form
 .product-form {
     display: flex;
+    flex-direction: column;
     align-items: flex-start;
     flex-wrap: nowrap;
 
@@ -453,7 +454,7 @@
         line-height: get(product, variation, height);
     }
 
-    margin: 0 0 1rem;
+    // margin: 0 0 1rem;
 
     // label
     >label {

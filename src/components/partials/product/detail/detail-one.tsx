@@ -9,6 +9,7 @@ import ProductNav from '~/components/partials/product/product-nav';
 import { useCart } from '@/context/cart/CartContext';
 import { useWishlist } from '@/context/wishlist/WishlistContext';
 import { toDecimal } from '~/utils';
+import { useQuickview } from '@/context/quickview/QuickviewContext';
 
 // ---------- Types ----------
 interface ProductVariant {
@@ -54,7 +55,7 @@ interface ProductProp {
 }
 
 interface DetailOneProps {
-  data: ProductProp;
+  data: any;
   isStickyCart?: boolean;
   adClass?: string;
   isNav?: boolean;
@@ -75,6 +76,7 @@ const DetailOne: React.FC<DetailOneProps> = ({
   const router = useRouter();
   const { addToCart } = useCart();
   const { toggleWishlist, isWishlisted } = useWishlist();
+  const { isOpen: quickviewOpen, closeQuickview } = useQuickview();
 
   const [curColor, setCurColor] = useState<string>('null');
   const [curSize, setCurSize] = useState<string>('null');
@@ -84,11 +86,28 @@ const DetailOne: React.FC<DetailOneProps> = ({
 
   const product = data?.product ?? data; // compatibility fallback
   const productData = product?.data ?? product;
+  // Add safe categories fallback: use Vendure collections if categories missing
+  const categories: Category[] =
+    Array.isArray(productData?.categories) && productData.categories.length
+      ? productData.categories
+      : Array.isArray((productData as any)?.collections)
+        ? (productData as any).collections.map((c: any) => ({ name: c.name, slug: c.slug }))
+        : [];
 
   const colors: Array<{ id: string; name: string }> = [];
   const sizes: Array<{ id: string; name: string }> = [];
 
-  const wish = isWishlisted(productData.slug);
+  const wish = productData?.slug ? isWishlisted(productData.slug) : false;
+
+  // Safe price values to avoid undefined access
+  const price0 = Array.isArray(productData?.price)
+    ? productData.price[0]
+    : (Array.isArray(productData?.variants) && productData.variants.length > 0
+      ? (productData.variants[0].price ?? productData.variants[0].priceWithTax ?? 0)
+      : 0);
+  const price1 = Array.isArray(productData?.price)
+    ? productData.price[1]
+    : price0;
 
   // extract unique sizes and colors
   if (productData?.variants?.length > 0) {
@@ -127,64 +146,73 @@ const DetailOne: React.FC<DetailOneProps> = ({
     };
   }, [productData]);
 
-  // determine active variant
+  // helper: get color/size names from variant options or legacy fields
+  const getVariantNames = (item: ProductVariant): { colorName: string | null; sizeName: string | null } => {
+    let colorName: string | null = item.color?.name ?? null;
+    let sizeName: string | null = item.size?.name ?? null;
+    if ((!colorName || !sizeName) && Array.isArray(item.options)) {
+      for (const opt of item.options) {
+        const groupCode = opt.group?.code || opt.group?.name || '';
+        if (/color/i.test(groupCode)) colorName = opt.name;
+        else if (/size/i.test(groupCode)) sizeName = opt.name;
+      }
+    }
+    return { colorName, sizeName };
+  };
+
+  // determine active variant (match by color/size name like detail-five)
   useEffect(() => {
-    if (!productData?.variants?.length) {
-      setCartActive(productData.stock > 0);
+    if (!Array.isArray(productData?.variants) || productData.variants.length === 0) {
+      setCartActive((productData as any).stock > 0);
       return;
     }
 
-    const matchesSelection = (variant: ProductVariant) => {
-      if (!variant) return false;
-      const optionIds = variant.options?.map((opt) => opt.id) || [];
+    const variants = productData.variants;
+    const first = getVariantNames(variants[0]);
+    const isValidSelection =
+      (curColor !== 'null' && curSize !== 'null') ||
+      (curColor !== 'null' && first.sizeName === null) ||
+      (curSize !== 'null' && first.colorName === null);
 
-      const colorSelected = curColor !== 'null';
-      const sizeSelected = curSize !== 'null';
+    if (isValidSelection) {
+      const foundIndex = variants.findIndex((item: ProductVariant) => {
+        const { colorName: c, sizeName: s } = getVariantNames(item);
+        return (
+          (s !== null && c !== null && c === curColor && s === curSize) ||
+          (s === null && c !== null && c === curColor) ||
+          (c === null && s !== null && s === curSize)
+        );
+      });
 
-      const matchesColor = !colorSelected || optionIds.includes(curColor);
-      const matchesSize = !sizeSelected || optionIds.includes(curSize);
-
-      if (variant.options?.length) {
-        return matchesColor && matchesSize;
+      if (foundIndex > -1) {
+        setCartActive(true);
+        setCurIndex(foundIndex);
+      } else {
+        setCartActive(false);
+        setCurIndex(-1);
       }
+    } else {
+      setCartActive(false);
+      setCurIndex(-1);
+    }
 
-      const variantColor = variant.color?.name;
-      const variantSize = variant.size?.name;
-      const colorOk = !colorSelected || variantColor === curColor;
-      const sizeOk = !sizeSelected || variantSize === curSize;
-      return colorOk && sizeOk;
-    };
-
-    const nextIndex = productData.variants.findIndex(matchesSelection);
-    setCurIndex(nextIndex);
-    const hasMatch = nextIndex > -1;
-    const inStock = productData.stock !== 0;
-    setCartActive(hasMatch && inStock);
+    if ((productData as any).stock === 0) {
+      setCartActive(false);
+    }
   }, [curColor, curSize, productData]);
 
-  // wishlist handler
-  const wishlistHandler = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    const currentTarget = e.currentTarget;
-
-    if (!wish) {
-      currentTarget.classList.add('load-more-overlay', 'loading');
-      toggleWishlist(productData);
-      setTimeout(() => {
-        currentTarget.classList.remove('load-more-overlay', 'loading');
-      }, 1000);
-    } else {
-      router.push('/wishlist');
+  // change current color (toggle behavior like detail-five)
+  const changeColor = (colorName: string) => {
+    if (!isDisabled(colorName, curSize)) {
+      setCurColor((prev) => (prev === colorName ? 'null' : colorName));
     }
   };
 
-  // color/size handlers
-  const setColorHandler = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setCurColor(e.target.value);
-  };
-
-  const setSizeHandler = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setCurSize(e.target.value);
+  // change current size (toggle behavior like detail-five)
+  const changeSize = (sizeName: string) => {
+    if (!isDisabled(curColor, sizeName)) {
+      setCurSize((prev) => (prev === sizeName ? 'null' : sizeName));
+    }
   };
 
   // reset selection
@@ -193,32 +221,29 @@ const DetailOne: React.FC<DetailOneProps> = ({
     setCurSize('null');
   };
 
-  // disable invalid combinations
-  function isDisabled(colorId: string, sizeId: string): boolean {
-    if (!productData?.variants?.length) return false;
-    if (colorId === 'null' || sizeId === 'null') return false;
+  // disable invalid combinations like detail-five
+  function isDisabled(colorName: string, sizeName: string) {
+    if (colorName === 'null' || sizeName === 'null') return false;
+    const variants = productData?.variants || [];
 
-    return (
-      productData.variants.findIndex((variant: ProductVariant) => {
-        if (variant.options?.length) {
-          const optionIds = variant.options.map((opt: NonNullable<ProductVariant['options']>[number]) => opt.id);
-          const colorMatch = optionIds.includes(colorId);
-          const sizeMatch = optionIds.includes(sizeId);
-          return colorMatch && sizeMatch;
-        }
-        const variantColorId = variant.color?.name || variant.color?.color;
-        const variantSizeId = variant.size?.name || variant.size?.size;
-        return variantColorId === colorId && variantSizeId === sizeId;
-      }) === -1
-    );
+    const hasSizes = sizes.length > 0;
+    const hasColors = colors.length > 0;
+
+    if (!hasSizes) {
+      return variants.findIndex((item: ProductVariant) => getVariantNames(item).colorName === colorName) === -1;
+    }
+    if (!hasColors) {
+      return variants.findIndex((item: ProductVariant) => getVariantNames(item).sizeName === sizeName) === -1;
+    }
+    return variants.findIndex((item: ProductVariant) => {
+      const names = getVariantNames(item);
+      return names.colorName === colorName && names.sizeName === sizeName;
+    }) === -1;
   }
 
-  // quantity change
-  const changeQty = (qty: number) => setQuantity(qty);
-
   // add to cart
-  const addToCartHandler = () => {
-    if (!cartActive || productData.stock <= 0) return;
+  const addToCartHandler = async () => {
+    if (!cartActive || (productData as any).stock <= 0) return;
 
     const variants = productData.variants || [];
     const variant = variants.length > 0 ? (curIndex > -1 ? variants[curIndex] : variants[0]) : undefined;
@@ -227,15 +252,15 @@ const DetailOne: React.FC<DetailOneProps> = ({
     const basePrice =
       typeof variant?.priceWithTax === 'number'
         ? variant.priceWithTax / 100
-        : variant?.sale_price ?? variant?.price ?? productData.price[0];
+        : variant?.sale_price ?? variant?.price ?? (productData as any)?.price?.[0];
 
     let displayName = productData.name;
-    const colorName = colors.find((c) => c.id === curColor)?.name || curColor;
-    const sizeName = sizes.find((s) => s.id === curSize)?.name || curSize;
-    if (curColor !== 'null') displayName += ` - ${colorName}`;
-    if (curSize !== 'null') displayName += ` - ${sizeName}`;
+    const colorName = curColor !== 'null' ? curColor : null;
+    const sizeName = curSize !== 'null' ? curSize : null;
+    if (colorName) displayName += ` - ${colorName}`;
+    if (sizeName) displayName += ` - ${sizeName}`;
 
-    addToCart({
+    await addToCart({
       productVariantId: variantId,
       quantity,
       product: {
@@ -247,7 +272,35 @@ const DetailOne: React.FC<DetailOneProps> = ({
         variant,
       },
     });
+
+    // Close quickview modal after adding to cart
+    if (quickviewOpen) {
+      closeQuickview();
+    }
   };
+  // (Removed duplicate addToCartHandler; using the unified version above)
+
+  // quantity change
+  const changeQty = (qty: number) => setQuantity(qty);
+
+  // handle wishlist toggle / navigation
+  const wishlistHandler = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+
+    if (!wish) {
+      const currentTarget = e.currentTarget;
+      currentTarget.classList.add('load-more-overlay', 'loading');
+      // Toggle wishlist for current product data
+      toggleWishlist(productData);
+      setTimeout(() => {
+        currentTarget.classList.remove('load-more-overlay', 'loading');
+      }, 1000);
+    } else {
+      router.push('/wishlist');
+    }
+  };
+
+  // duplicate addToCartHandler removed
 
   // ---------- JSX ----------
   return (
@@ -278,12 +331,12 @@ const DetailOne: React.FC<DetailOneProps> = ({
         SKU: <span className="product-sku">{productData.sku}</span>
         CATEGORIES:{' '}
         <span className="product-brand">
-          {productData.categories.map((cat, idx) => (
+          {categories.map((cat, idx) => (
             <React.Fragment key={`${cat.name}-${idx}`}>
               <ALink href={{ pathname: '/shop', query: { category: cat.slug } }}>
                 {cat.name}
               </ALink>
-              {idx < productData.categories.length - 1 ? ', ' : ''}
+              {idx < categories.length - 1 ? ', ' : ''}
             </React.Fragment>
           ))}
         </span>
@@ -291,117 +344,117 @@ const DetailOne: React.FC<DetailOneProps> = ({
 
       {/* Price */}
       <div className="product-price">
-        {productData.price[0] !== productData.price[1] ? (
-          productData.variants.length === 0 ||
-          (productData.variants.length > 0 && !productData.variants[0].price) ? (
+        {price0 !== price1 ? (
+          !Array.isArray(productData.variants) ||
+            productData.variants.length === 0 ||
+            (productData.variants.length > 0 && !productData.variants[0]?.price) ? (
             <>
-              <ins className="new-price">${toDecimal(productData.price[0])}</ins>
-              <del className="old-price">${toDecimal(productData.price[1])}</del>
+              <ins className="new-price">${toDecimal(price0)}</ins>
+              <del className="old-price">${toDecimal(price1)}</del>
             </>
           ) : (
-            <del className="new-price">
-              ${toDecimal(productData.price[0])} – ${toDecimal(productData.price[1])}
-            </del>
+            <div className="product-price">
+              <ins className="new-price">${toDecimal(productData.variants[0]?.price ?? price0)}</ins>
+            </div>
           )
         ) : (
-          <ins className="new-price">${toDecimal(productData.price[0])}</ins>
+          <div className="product-price">
+            <ins className="new-price">${toDecimal(price0)}</ins>
+          </div>
         )}
       </div>
 
-      {productData.price[0] !== productData.price[1] &&
-        productData.variants.length === 0 && <Countdown type={2} />}
-
-      {/* Ratings */}
-      <div className="ratings-container">
-        <div className="ratings-full">
-          <span
-            className="ratings"
-            style={{ width: `${20 * productData.ratings}%` }}
-          />
-          <span className="tooltiptext tooltip-top">
-            {toDecimal(productData.ratings)}
-          </span>
-        </div>
-        <ALink href="#" className="rating-reviews">
-          ({productData.reviews} reviews)
-        </ALink>
-      </div>
-
-      <p className="product-short-desc">{productData.short_description}</p>
-
-      {/* Variations */}
-      {productData.variants.length > 0 && (
-        <>
-          {productData.variants[0].color && (
-            <div className="product-form product-variations product-color">
+      {/* Variations & Cart */}
+      {Array.isArray(productData.variants) && productData.variants.length > 0 ? (
+        <div className="product-form product-variations mt-3">
+          {colors.length > 0 && (
+            <div className="product-form product-color">
               <label>Color:</label>
-              <div className="select-box">
-                <select
-                  name="color"
-                  className="form-control select-color"
-                  onChange={setColorHandler}
-                  value={curColor}
-                >
-                  <option value="null">Choose an Option</option>
-                  {colors.map(
-                    (c) =>
-                      !isDisabled(c.name, curSize) && (
-                        <option value={c.name} key={`color-${c.name}`}>
-                          {c.name}
-                        </option>
-                      )
-                  )}
-                </select>
+              <div className="product-variations">
+                {colors.map((item: { id: string; name: string }) => (
+                  <ALink
+                    href="#"
+                    className={`color ${curColor === item.name ? 'active' : ''} ${isDisabled(item.name, curSize) ? 'disabled' : ''}`}
+                    data-color={`${item.name}`.toUpperCase()}
+                    key={item.id}
+                    onClick={() => changeColor(item.name)}
+                  >
+                    {item.name}
+                  </ALink>
+                ))}
               </div>
             </div>
           )}
 
-          {productData.variants[0].size && (
-            <div className="product-form product-variations product-size mb-0 pb-2">
+          <br />
+
+          {sizes.length > 0 && (
+            <div className="product-form product-size">
               <label>Size:</label>
               <div className="product-form-group">
-                <div className="select-box">
-                  <select
-                    name="size"
-                    className="form-control select-size"
-                    onChange={setSizeHandler}
-                    value={curSize}
-                  >
-                    <option value="null">Choose an Option</option>
-                    {sizes.map(
-                      (s) =>
-                        !isDisabled(curColor, s.name) && (
-                          <option value={s.name} key={`size-${s.name}`}>
-                            {s.name}
-                          </option>
-                        )
-                    )}
-                  </select>
+                <div className="product-variations">
+                  {sizes.map((item: { id: string; name: string }) => (
+                    <ALink
+                      href="#"
+                      className={`size ${curSize === item.name ? 'active' : ''} ${isDisabled(curColor, item.name) ? 'disabled' : ''}`}
+                      key={item.id}
+                      onClick={() => changeSize(item.name)}
+                    >
+                      {item.name}
+                    </ALink>
+                  ))}
                 </div>
-
-                <Collapse in={curColor !== 'null' || curSize !== 'null'}>
+                {('null' !== curColor || 'null' !== curSize) && (
                   <div className="card-wrapper overflow-hidden reset-value-button w-100 mb-0">
-                    <ALink href="#" className="product-variation-clean" onClick={resetValueHandler}>
+                    <ALink href="#" className="product-variation-clean" onClick={() => resetValueHandler()}>
                       Clean All
                     </ALink>
                   </div>
-                </Collapse>
+                )}
               </div>
             </div>
           )}
-        </>
-      )}
 
-      {/* Quantity & Cart */}
-      <hr className="product-divider" />
+          <br />
+
+          <div className="product-variation-price">
+            {cartActive && curIndex > -1 && (
+              <div className="card-wrapper">
+                <div className="single-product-price">
+                  {(() => {
+                    const v = productData.variants[curIndex];
+                    if (!v) return null;
+                    if (typeof v.price === 'number') {
+                      if (typeof v.sale_price === 'number') {
+                        return (
+                          <div className="product-price mb-0">
+                            <ins className="new-price">${toDecimal(v.sale_price)}</ins>
+                            <del className="old-price">${toDecimal(v.price)}</del>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="product-price mb-0">
+                          <ins className="new-price">${toDecimal(v.price)}</ins>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+
       <div className="product-form product-qty pb-0">
         <label className="d-none">QTY:</label>
         <div className="product-form-group">
-          <Quantity max={productData.stock} product={productData} onChangeQty={changeQty} />
+          <Quantity qty={quantity} max={productData.stock} product={productData} onChangeQty={changeQty} />
           <button
-            className={`btn-product btn-cart text-normal ls-normal font-weight-semi-bold ${
-              cartActive ? '' : 'disabled'
-            }`}
+            className={`btn-product btn-cart text-normal ls-normal font-weight-semi-bold ${cartActive ? '' : 'disabled'
+              }`}
             onClick={addToCartHandler}
           >
             <i className="d-icon-bag" />

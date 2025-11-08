@@ -7,9 +7,11 @@ import ALink from '~/components/features/custom-link';
 import ProductTwo from '~/components/features/product/product-two';
 
 import { fadeIn, fadeInDownShorter } from '~/utils/data/keyframes';
+import { useQuickview } from '@/context/quickview/QuickviewContext';
 
 function FeaturedCollection(props) {
     const { products, loading, adClass = "mt-10 pt-6", title = "T‑Shirts", bannerSubTitle = "Winter season's", bannerTitle = "Discover Our Ski<br />Equipments", url = "/images/home/banner/1.jpg", btnAdClass = '' } = props;
+    const { openQuickview } = useQuickview();
 
     function removeXSSAttacks(html) {
         const SCRIPT_REGEX = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
@@ -80,7 +82,8 @@ function FeaturedCollection(props) {
                                             <ProductTwo
                                                 product={item}
                                                 isCat={false}
-                                                isRatingText={false} />
+                                                isRatingText={false}
+                                                openQuickview={openQuickview} />
                                         </div>
                                     )
                                 }

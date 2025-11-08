@@ -7,6 +7,7 @@ import FakeReviews from '@/components/partials/product/fake-reviews';
 import ShopBannerDefault from '@/components/partials/shop/banner/shop-banner-default';
 import dynamic from 'next/dynamic';
 import React from 'react';
+import DescThree from '@/components/partials/product/desc/desc-three';
 
 
 const MediaFive = React.lazy(() => import('@/components/partials/product/media/media-five'));
@@ -202,6 +203,15 @@ export default async function Page({ params }: PageProps) {
           hasInStockVariant = true;
         }
       }
+
+      const toAbsolute = (u?: string | null): string | null => {
+        if (!u) return null;
+        if (/^https?:\/\//i.test(u)) return u;
+        const base = (process.env.NEXT_PUBLIC_SHOP_API_BASE || '').replace(/\/$/, '');
+        if (u.startsWith('/assets')) return base ? `${base}${u}` : u;
+        return u;
+      };
+
       return {
         id: variant.id,
         name: variant.name,
@@ -210,7 +220,7 @@ export default async function Page({ params }: PageProps) {
         sale_price: null,
         stockLevel: variant.stockLevel,
         optionValues,
-        pictures: (variant.assets || []).map((asset: any) => ({ url: asset?.preview || '' })),
+        pictures: (variant.assets || []).map((asset: any) => ({ url: toAbsolute(asset?.preview) || '' })),
         color: colorOption
           ? { name: colorOption.name, color: colorOption.code || colorOption.name }
           : null,
@@ -289,6 +299,9 @@ export default async function Page({ params }: PageProps) {
                     <DetailFive data={adapted} isDesc={true} isProductNav={false} isGuide />
                   </div>
                 </div>
+
+
+                <DescThree product={adapted.product.data} isGuide />
 
                 <RelatedProducts products={relatedProducts} adClass="pt-3" />
 

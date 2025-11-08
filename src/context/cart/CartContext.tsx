@@ -63,7 +63,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const resolveAssetUrl = (url?: string | null): string | null => {
     if (!url) return null;
     if (/^https?:\/\//i.test(url)) return url;
-    return `${url}`;
+    // Prefix Vendure relative asset path with remote base
+    const base = (process.env.NEXT_PUBLIC_SHOP_API_BASE || '').replace(/\/$/, '');
+    if (url.startsWith('/assets')) {
+      return base ? `${base}${url}` : url;
+    }
+    return url;
   };
 
   const items: CartItem[] = (order?.lines ?? []).map((line: any) => ({

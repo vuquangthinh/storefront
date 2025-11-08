@@ -3,6 +3,7 @@ import React from 'react';
 import ProductTwo from '~/components/features/product/product-two';
 import ProductEight from '~/components/features/product/product-eight';
 import Pagination from '@/components/features/pagination';
+import { useQuickview } from '@/context/quickview/QuickviewContext';
 
 export default function ProductListGrid({
   products,
@@ -23,6 +24,7 @@ export default function ProductListGrid({
   showPagination?: boolean;
   notFoundMessage?: string;
 }) {
+  const { openQuickview } = useQuickview();
   const gridParam = grid || '3cols';
   const itemsPerRow = gridParam === '3cols' ? 3 : gridParam === '5cols' ? 5 : gridParam === '6cols' ? 6 : 4;
   const gridClasses: Record<number, string> = {
@@ -40,7 +42,7 @@ export default function ProductListGrid({
         <div className={`row product-wrapper ${gridClasses[itemsPerRow]}`}>
           {products.slice(0, 24).map((item: any, index: number) => (
             <div className="product-wrap" key={`shop-${item.slug || index}`}>
-              <ProductTwo product={item} />
+              <ProductTwo product={item} openQuickview={openQuickview} />
             </div>
           ))}
           {products.length === 0 && (
@@ -65,7 +67,7 @@ export default function ProductListGrid({
       <div className="product-lists product-wrapper">
         {products.slice(0, 24).map((item: any, index: number) => (
           <div className="product-wrap" key={`shop-list-${item.slug || index}`}>
-            <ProductEight product={item} />
+            <ProductEight product={item} openQuickview={openQuickview} />
           </div>
         ))}
         {products.length === 0 && (

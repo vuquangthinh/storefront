@@ -1,29 +1,30 @@
-import OwlCarousel from '~/components/features/owl-carousel';
+'use client'
 
+import React from 'react';
 import ProductTwo from '~/components/features/product/product-two';
-
-import { relatedProductSlider } from '~/utils/data/carousel';
+import { useQuickview } from '@/context/quickview/QuickviewContext';
 
 interface RelatedProductsProps {
     products: any[];
     adClass?: string;
 }
 
-export default function RelatedProducts ( props: RelatedProductsProps ) {
-    const { products, adClass = "" } = props;
+export default function RelatedProducts({ products, adClass = '' }: RelatedProductsProps) {
+    const { openQuickview } = useQuickview();
 
     return (
-        products.length > 0 ?
-            <section className={ `${ adClass }` }>
-                <h2 className="title text-normal text-center d-block mb-5">Related Products</h2>
+        <section className={`related-products ${adClass}`}>
+            <h2 className="title title-simple mb-8 mt-8">Related Products</h2>
 
-                <OwlCarousel adClass="owl-carousel owl-theme owl-nav-full" options={ relatedProductSlider }>
-                    {
-                        products && products.slice( 0, 5 ).map( ( item, index ) =>
-                            <ProductTwo product={ item } key={ 'product-two-' + index } />
-                        )
-                    }
-                </OwlCarousel>
-            </section> : ''
-    )
+            <div className="container">
+                <div className="row cols-2 cols-sm-3 cols-md-4 product-wrapper">
+                    {products && products.map((item: any, index: number) => (
+                        <div className="product-wrap" key={`product-two-${index}`}>
+                            <ProductTwo product={ item } openQuickview={openQuickview} />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
 }

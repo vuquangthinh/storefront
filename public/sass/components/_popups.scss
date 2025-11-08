@@ -636,6 +636,12 @@ button.mfp-close {
     z-index: 2000 !important;
 }
 
+// Add blur and dark background for quickview overlay
+.ReactModal__Overlay.quickview-modal-overlay {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+}
+
 .ril__image, .ril__imagePrev, .ril__imageNext {
     transition: .3s;
 }
@@ -671,7 +677,7 @@ button.mfp-close {
     
     .quickview-modal.product.product-single .product-details {
         position: absolute;
-        overflow-y: auto;
+        // overflow-y: auto;
         height: 100%;
         top: 0;
     }
