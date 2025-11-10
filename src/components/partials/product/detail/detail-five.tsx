@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
@@ -7,7 +7,6 @@ import ALink from '~/components/features/custom-link';
 import Quantity from '~/components/features/quantity';
 
 import ProductNav from '~/components/partials/product/product-nav';
-import DescThree from '~/components/partials/product/desc/desc-three';
 
 import { useCart } from '@/context/cart/CartContext';
 import { useWishlist } from '@/context/wishlist/WishlistContext';
@@ -98,19 +97,7 @@ const LimitedOfferCountdown = dynamic(() => import('@/components/features/limite
     )
 });
 
-const ViewerCountBadge = dynamic(() => import('@/components/features/viewer-count-badge'), {
-    ssr: false,
-    loading: () => (
-        <div className={viewerCountStyles.badge} role="status" aria-live="polite">
-            <span className={viewerCountStyles.icon}>
-                <i className="d-icon-users"></i>
-            </span>
-            <span className={viewerCountStyles.text}>
-                Other people want this. There are <strong>--</strong> people viewing this product right now.
-            </span>
-        </div>
-    )
-});
+const ViewerCountBadge = React.lazy(() => import('@/components/features/viewer-count-badge'));
 
 // Minimal Collapse component
 function Collapse({ in: open, children }: { in: boolean; children: React.ReactNode }) {
@@ -148,6 +135,28 @@ function DetailOne(props: DetailOneProps) {
             });
         }
     }
+
+    // Sort sizes in storefront order
+    const SIZE_ORDER = ['S','M','L','XL','2XL','3XL','4XL','5XL'];
+    const normalizeSize = (s: string) => s.replace(/\s+/g, '').toUpperCase();
+    sizes.sort((a, b) => {
+        const ia = SIZE_ORDER.indexOf(normalizeSize(a.name));
+        const ib = SIZE_ORDER.indexOf(normalizeSize(b.name));
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.name.localeCompare(b.name);
+    });
+
+    // Auto-select single option for color/size
+    useEffect(() => {
+        if (colors.length === 1 && curColor === 'null') {
+            setCurColor(colors[0].name);
+        }
+        if (sizes.length === 1 && curSize === 'null') {
+            setCurSize(sizes[0].name);
+        }
+    }, [product]);
 
     useEffect(() => {
         setCurIndex(-1);
@@ -425,7 +434,9 @@ function DetailOne(props: DetailOneProps) {
                 </div>
 
                 <div className="mt-2">
-                    <ViewerCountBadge />
+                    <Suspense fallback={<div>Loading...</div>}>
+                        <ViewerCountBadge />
+                    </Suspense>
                 </div>
 
 

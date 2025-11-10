@@ -442,7 +442,7 @@
 // Product Form
 .product-form {
     display: flex;
-    flex-direction: column;
+    // flex-direction: column;
     align-items: flex-start;
     flex-wrap: nowrap;
 
@@ -608,7 +608,7 @@
 
 //related products
 .related-products {
-    margin-top: 6.5rem;
+    margin-top: 2.5rem;
 }
 
 @include mq(lg) {

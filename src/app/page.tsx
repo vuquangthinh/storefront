@@ -78,7 +78,8 @@ const COLLECTION_CONFIG = {
     bannerTitle: "Perfect Presents<br />For Everyone",
     url: "/images/home/banner/1.png",
     btnAdClass: "",
-    adClass: "mt-10 pt-6",
+    adClass: "pt-6",
+    collectionUrl: "/categories/gifts",
   },
   hoodies: {
     slug: "hoodies",
@@ -87,7 +88,8 @@ const COLLECTION_CONFIG = {
     bannerTitle: "Cozy Hoodies<br />For Every Season",
     url: "/images/home/banner/4.png",
     btnAdClass: "mb-1",
-    adClass: "mt-10 pt-5",
+    adClass: "pt-5",
+    collectionUrl: "/categories/hoodies",
   },
   tshirts: {
     slug: "tshirts",
@@ -95,8 +97,9 @@ const COLLECTION_CONFIG = {
     bannerSubTitle: "Fresh Drops",
     bannerTitle: "Everyday Tees<br />You'll Love",
     url: "/images/home/banner/2.png",
+    collectionUrl: "/categories/tshirts",
     btnAdClass: "",
-    adClass: "mt-10 pt-6",
+    adClass: "pt-6",
   },
 } as const;
 
@@ -186,7 +189,7 @@ export default function Page() {
     []
   );
 
-  const [trendingProducts, setTrendingProducts] = useState<HomeProduct[]>(demoProducts.slice(0, 8));
+  const [trendingProducts, setTrendingProducts] = useState<HomeProduct[]>([]);
   const [loadingTrending, setLoadingTrending] = useState(true);
   const [collectionProducts, setCollectionProducts] = useState<Record<CollectionKey, HomeProduct[]>>({
     gifts: [],
@@ -208,7 +211,7 @@ export default function Page() {
         setCollectionsLoading({ gifts: true, hoodies: true, tshirts: true });
 
         const [trending, gifts, hoodies, tshirts] = await Promise.all([
-          fetchProductsFromVendure({ take: 12, sort: { score: "DESC" } }).catch((e) => []),
+          fetchProductsFromVendure({ collectionSlug: 'trending' }).catch((e) => []),
           fetchProductsFromVendure({ collectionSlug: COLLECTION_CONFIG.gifts.slug }).catch(() => []),
           fetchProductsFromVendure({ collectionSlug: COLLECTION_CONFIG.hoodies.slug }).catch(() => []),
           fetchProductsFromVendure({ collectionSlug: COLLECTION_CONFIG.tshirts.slug }).catch(() => []),
@@ -241,7 +244,7 @@ export default function Page() {
 
   return (
     <main className="main">
-      <div className="page-content">
+      <div className="page-content mb-10">
         <IntroSection />
         <FeaturedCollection products={trendingProducts} loading={loadingTrending} />
         {/* <CategorySection /> */}
@@ -255,6 +258,7 @@ export default function Page() {
           url={COLLECTION_CONFIG.gifts.url}
           adClass={COLLECTION_CONFIG.gifts.adClass}
           btnAdClass={COLLECTION_CONFIG.gifts.btnAdClass}
+          collectionUrl={COLLECTION_CONFIG.gifts.collectionUrl}
         />
 
         {/* <BannerSection /> */}
@@ -262,6 +266,7 @@ export default function Page() {
 
 
         <ProductCollection
+          collectionUrl={COLLECTION_CONFIG.hoodies.collectionUrl}
           products={collectionProducts.hoodies}
           loading={collectionsLoading.hoodies}
           title={COLLECTION_CONFIG.hoodies.title}
@@ -274,6 +279,7 @@ export default function Page() {
 
 
         <ProductCollection
+          collectionUrl={COLLECTION_CONFIG.tshirts.collectionUrl}
           products={collectionProducts.tshirts}
           loading={collectionsLoading.tshirts}
           title={COLLECTION_CONFIG.tshirts.title}

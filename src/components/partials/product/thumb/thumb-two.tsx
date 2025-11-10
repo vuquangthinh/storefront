@@ -57,9 +57,7 @@ export default function ThumbTwo({ product, index, onChangeIndex }: ThumbTwoProp
   };
 
   return (
-    <div className="product-thumbs-wrap product-thumbs-two" style={{
-      height: 300
-    }}>
+    <div className="product-thumbs-wrap product-thumbs-two">
       <Carousel
         ref={thumbRef}
         adClass="product-thumb-carousel"
@@ -71,7 +69,8 @@ export default function ThumbTwo({ product, index, onChangeIndex }: ThumbTwoProp
             className={` ${i === index ? 'active' : ''}`}
             onClick={(e) => handleThumbClick(e, i)}
             style={{
-              width: '100%'
+              width: '100%',
+              cursor: 'pointer',
             }}
           >
             <img

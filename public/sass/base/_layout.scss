@@ -107,12 +107,20 @@
     background-color: #f5f5dc!important; // Màu tự nhiên, beige
   }
 
-  .color[data-color="DARK HEATHER"] {
+  .color[data-color="DARK-HEATHER"] {
     background-color: #3a3a3a!important; // Màu xám đậm
   }
 
-  .color[data-color="MILITARY GREEN"] {
+  .color[data-color="MILITARY-GREEN"] {
     background-color: #4b5320!important; // Màu xanh rêu quân đội
+  }
+
+  .color[data-color="LIGHT-PINK"] {
+    background-color: #ffc0cb!important; // Màu hồng nhạt
+  }
+
+  .color[data-color="LIGHT-BLUE"] {
+    background-color: #add8e6!important; // Màu xanh nhạt
   }
 
   .color[data-color="HEATHER GREY"] {

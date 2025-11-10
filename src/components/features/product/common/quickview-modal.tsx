@@ -6,6 +6,8 @@ import OwlCarousel from '~/components/features/owl-carousel';
 import DetailOne from '~/components/partials/product/detail/detail-one';
 
 import { mainSlider3 } from '~/utils/data/carousel';
+import MediaOne from '@/components/partials/product/media/media-one';
+import MediaFive from '@/components/partials/product/media/media-five';
 
 interface QuickviewProps {
     slug?: string;
@@ -138,6 +140,7 @@ export default function Quickview({ slug = '', isOpen = false, closeQuickview = 
                                             />
                                         ))}
                                     </OwlCarousel>
+
                                 </div>
                             </div>
 

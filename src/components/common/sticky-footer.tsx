@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 
 import ALink from '~/components/features/custom-link';
 
@@ -7,29 +7,13 @@ import { showScrollTopHandler, stickyHeaderHandler } from '@/utils';
 import { usePathname } from 'next/navigation';
 
 export default function StickyFooter() {
-    let tmp = 0;
+    const prevScrollY = useRef<number>(0);
 
     const pathname = usePathname();
 
     useLayoutEffect(() => {
         document.querySelector('body')?.classList.remove('loaded');
     }, [pathname])
-
-    useEffect(() => {
-        window.addEventListener('scroll', showScrollTopHandler, true);
-        window.addEventListener('scroll', stickyHeaderHandler, true);
-        window.addEventListener('scroll', stickyFooterHandler, true);
-        window.addEventListener('resize', stickyHeaderHandler, true);
-        window.addEventListener('resize', stickyFooterHandler, true);
-
-        return () => {
-            window.removeEventListener('scroll', showScrollTopHandler, true);
-            window.removeEventListener('scroll', stickyHeaderHandler, true);
-            window.removeEventListener('scroll', stickyFooterHandler, true);
-            window.removeEventListener('resize', stickyHeaderHandler, true);
-            window.removeEventListener('resize', stickyFooterHandler, true);
-        }
-    }, [])
 
     useEffect(() => {
         const body = document.querySelector('body');
@@ -43,56 +27,71 @@ export default function StickyFooter() {
         }, 50);
     }, [pathname])
 
-    useEffect(() => {
-        window.addEventListener('scroll', stickyFooterHandler);
+    const stickyFooterHandler = useCallback(() => {
+        const pageContent = document.querySelector<HTMLElement>('.page-content');
+        const header = document.querySelector<HTMLElement>('header');
+        const top = pageContent && header ? pageContent.offsetTop + header.offsetHeight + 100 : 600;
+        const stickyFooter = document.querySelector<HTMLElement>('.sticky-footer.sticky-content');
+        const height = stickyFooter ? stickyFooter.offsetHeight : 0;
 
-        return () => {
-            window.removeEventListener('scroll', stickyFooterHandler);
-        }
-    }, [])
+        const currentScrollY = window.scrollY;
 
-    const stickyFooterHandler = (e) => {
-        let top = document.querySelector('.page-content') ? document.querySelector('.page-content').offsetTop + document.querySelector('header').offsetHeight + 100 : 600;
-        let stickyFooter = document.querySelector('.sticky-footer.sticky-content');
-        let height = 0;
-
-        if (stickyFooter) {
-            height = stickyFooter.offsetHeight;
-        }
-
-        if (window.pageYOffset >= top && window.innerWidth < 768 && e.currentTarget.scrollY >= tmp) {
+        if (currentScrollY >= top && window.innerWidth < 768 && currentScrollY >= prevScrollY.current) {
             if (stickyFooter) {
                 stickyFooter.classList.add('fixed');
-                stickyFooter.setAttribute('style', "margin-bottom: 0")
-                if (!document.querySelector('.sticky-content-wrapper')) {
-                    let newNode = document.createElement("div");
-                    newNode.className = "sticky-content-wrapper";
+                stickyFooter.style.marginBottom = '0';
+
+                let wrapper = document.querySelector<HTMLElement>('.sticky-content-wrapper');
+                if (!wrapper && stickyFooter.parentNode) {
+                    const newNode = document.createElement('div');
+                    newNode.className = 'sticky-content-wrapper';
                     stickyFooter.parentNode.insertBefore(newNode, stickyFooter);
-                    document.querySelector('.sticky-content-wrapper').insertAdjacentElement('beforeend', stickyFooter);
-                    document.querySelector('.sticky-content-wrapper').setAttribute("style", "height: " + height + "px");
+                    newNode.appendChild(stickyFooter);
+                    newNode.style.height = `${height}px`;
+                    wrapper = newNode;
                 }
 
-                if (!document.querySelector('.sticky-content-wrapper').getAttribute("style")) {
-                    document.querySelector('.sticky-content-wrapper').setAttribute("style", "height: " + height + "px");
+                if (wrapper && !wrapper.getAttribute('style')) {
+                    wrapper.style.height = `${height}px`;
                 }
             }
         } else {
             if (stickyFooter) {
                 stickyFooter.classList.remove('fixed');
-                stickyFooter.setAttribute('style', `margin-bottom: -${height}px`)
+                stickyFooter.style.marginBottom = `-${height}px`;
             }
 
-            if (document.querySelector('.sticky-content-wrapper')) {
-                document.querySelector('.sticky-content-wrapper').removeAttribute("style");
+            const wrapper = document.querySelector<HTMLElement>('.sticky-content-wrapper');
+            if (wrapper) {
+                wrapper.removeAttribute('style');
             }
         }
 
-        if (window.innerWidth > 767 && document.querySelector('.sticky-content-wrapper')) {
-            document.querySelector('.sticky-content-wrapper').style.height = 'auto';
+        if (window.innerWidth > 767) {
+            const wrapper = document.querySelector<HTMLElement>('.sticky-content-wrapper');
+            if (wrapper) {
+                wrapper.style.height = 'auto';
+            }
         }
 
-        tmp = e.currentTarget.scrollY;
-    }
+        prevScrollY.current = currentScrollY;
+    }, []);
+
+    useEffect(() => {
+        window.addEventListener('scroll', showScrollTopHandler, { passive: true });
+        window.addEventListener('scroll', stickyHeaderHandler, { passive: true });
+        window.addEventListener('scroll', stickyFooterHandler, { passive: true });
+        window.addEventListener('resize', stickyHeaderHandler);
+        window.addEventListener('resize', stickyFooterHandler);
+
+        return () => {
+            window.removeEventListener('scroll', showScrollTopHandler);
+            window.removeEventListener('scroll', stickyHeaderHandler);
+            window.removeEventListener('scroll', stickyFooterHandler);
+            window.removeEventListener('resize', stickyHeaderHandler);
+            window.removeEventListener('resize', stickyFooterHandler);
+        }
+    }, [stickyFooterHandler])
 
     return (
         <div className="sticky-footer sticky-content fix-bottom">
@@ -108,10 +107,14 @@ export default function StickyFooter() {
                 <i className="d-icon-heart"></i>
                 <span>Wishlist</span>
             </ALink>
-            <ALink href="/account" className="sticky-link">
+            <ALink href="/checkout" className="sticky-link">
+                <i className="d-icon-card"></i>
+                <span>Buy Now</span>
+            </ALink>
+            {/* <ALink href="/account" className="sticky-link">
                 <i className="d-icon-user"></i>
                 <span>Account</span>
-            </ALink>
+            </ALink> */}
 
             {/* <FooterSearchBox /> */}
         </div>

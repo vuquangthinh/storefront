@@ -47,6 +47,28 @@ function DetailRight ( props: any ) {
         }
     }
 
+    // Sort sizes in storefront order
+    const SIZE_ORDER = ['S','M','L','XL','2XL','3XL','4XL','5XL'];
+    const normalizeSize = (s: string) => s.replace(/\s+/g, '').toUpperCase();
+    sizes.sort((a, b) => {
+        const ia = SIZE_ORDER.indexOf(normalizeSize(a.name));
+        const ib = SIZE_ORDER.indexOf(normalizeSize(b.name));
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.name.localeCompare(b.name);
+    });
+
+    // Auto-select single option for color/size
+    useEffect(() => {
+        if (colors.length === 1 && curColor === 'null') {
+            setCurColor(colors[0].name);
+        }
+        if (sizes.length === 1 && curSize === 'null') {
+            setCurSize(sizes[0].name);
+        }
+    }, [product]);
+
     useEffect( () => {
         setCurIndex( -1 );
         setCurColor('null');

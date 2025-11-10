@@ -18,7 +18,7 @@ function BestCollection ( props ) {
 
     return (
         <Reveal keyframes={ fadeIn } delay={ 600 } duration={ 1200 } triggerOnce>
-            <section className="product-wrapper container mt-10 pt-6">
+            <section className="product-wrapper container mt-6 pt-6">
                 <div className="title-wrapper d-flex align-items-center mb-5 with-link">
                     <h2 className="title title-simple text-left mb-0 ls-normal">Deals of the Week</h2>
                     <div className="pr-2 mr-xs-auto">

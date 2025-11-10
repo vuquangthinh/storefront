@@ -10,6 +10,7 @@ import { useCart } from '@/context/cart/CartContext';
 import { useWishlist } from '@/context/wishlist/WishlistContext';
 import { toDecimal } from '~/utils';
 import { useQuickview } from '@/context/quickview/QuickviewContext';
+import { toast } from 'react-toastify';
 
 // ---------- Types ----------
 interface ProductVariant {
@@ -96,6 +97,8 @@ const DetailOne: React.FC<DetailOneProps> = ({
 
   const colors: Array<{ id: string; name: string }> = [];
   const sizes: Array<{ id: string; name: string }> = [];
+  const colorKeys = new Set<string>();
+  const sizeKeys = new Set<string>();
 
   const wish = productData?.slug ? isWishlisted(productData.slug) : false;
 
@@ -115,28 +118,57 @@ const DetailOne: React.FC<DetailOneProps> = ({
       if (variant.options?.length) {
         variant.options.forEach((opt: NonNullable<ProductVariant['options']>[number]) => {
           const groupCode = opt.group?.code || opt.group?.name || "";
+          const key = (opt.code || opt.name || '').trim().toLowerCase();
           if (/color/i.test(groupCode)) {
-            if (!colors.some((c) => c.id === opt.id)) {
+            if (key && !colorKeys.has(key)) {
               colors.push({ id: opt.id, name: opt.name });
+              colorKeys.add(key);
             }
           } else if (/size/i.test(groupCode)) {
-            if (!sizes.some((s) => s.id === opt.id)) {
+            if (key && !sizeKeys.has(key)) {
               sizes.push({ id: opt.id, name: opt.name });
+              sizeKeys.add(key);
             }
           }
         });
       }
 
       if (!variant.options?.length) {
-        if (variant.color && !colors.some((c) => c.name === variant.color!.name)) {
+        const ckey = (variant.color?.name || '').trim().toLowerCase();
+        const skey = (variant.size?.name || '').trim().toLowerCase();
+        if (variant.color && ckey && !colorKeys.has(ckey)) {
           colors.push({ id: variant.color.name, name: variant.color.name });
+          colorKeys.add(ckey);
         }
-        if (variant.size && !sizes.some((s) => s.name === variant.size!.name)) {
+        if (variant.size && skey && !sizeKeys.has(skey)) {
           sizes.push({ id: variant.size.name, name: variant.size.name });
+          sizeKeys.add(skey);
         }
       }
     });
   }
+
+  // Sort sizes in a consistent order for storefront
+  const SIZE_ORDER = ['S','M','L','XL','2XL','3XL','4XL','5XL'];
+  const normalizeSize = (s: string) => s.replace(/\s+/g, '').toUpperCase();
+  sizes.sort((a, b) => {
+    const ia = SIZE_ORDER.indexOf(normalizeSize(a.name));
+    const ib = SIZE_ORDER.indexOf(normalizeSize(b.name));
+    if (ia !== -1 && ib !== -1) return ia - ib;
+    if (ia !== -1) return -1;
+    if (ib !== -1) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  // Auto-select single option for color/size
+  useEffect(() => {
+    if (colors.length === 1 && curColor === 'null') {
+      setCurColor(colors[0].name);
+    }
+    if (sizes.length === 1 && curSize === 'null') {
+      setCurSize(sizes[0].name);
+    }
+  }, [productData]);
 
   // reset states when product changes
   useEffect(() => {
@@ -278,6 +310,57 @@ const DetailOne: React.FC<DetailOneProps> = ({
       closeQuickview();
     }
   };
+
+  // Buy Now: add current selection to cart then go to checkout
+  const buyNowHandler = async () => {
+    if (!cartActive || (productData as any).stock <= 0) return;
+
+    const variants = productData.variants || [];
+    const variant = variants.length > 0 ? (curIndex > -1 ? variants[curIndex] : variants[0]) : undefined;
+
+    // Require selection when variant has color/size
+    if (Array.isArray(variants) && variants.length > 0) {
+      const first = variants[0];
+      const names = getVariantNames(first);
+      const needColor = names.colorName !== null;
+      const needSize = names.sizeName !== null;
+      if ((needColor && curColor === 'null') || (needSize && curSize === 'null')) {
+        toast.warn('Please select color/size before Buy Now.');
+        return;
+      }
+    }
+
+    const variantId = variant?.id;
+    const basePrice =
+      typeof variant?.priceWithTax === 'number'
+        ? variant.priceWithTax / 100
+        : variant?.sale_price ?? variant?.price ?? (productData as any)?.price?.[0];
+
+    let displayName = productData.name;
+    const colorName = curColor !== 'null' ? curColor : null;
+    const sizeName = curSize !== 'null' ? curSize : null;
+    if (colorName) displayName += ` - ${colorName}`;
+    if (sizeName) displayName += ` - ${sizeName}`;
+
+    await addToCart({
+      productVariantId: variantId,
+      quantity,
+      product: {
+        slug: productData.slug,
+        name: displayName,
+        price: basePrice,
+        pictures: productData.pictures,
+        image: variant?.assets?.[0]?.preview || productData.pictures?.[0]?.url || null,
+        variant,
+      },
+    });
+
+    if (quickviewOpen) {
+      closeQuickview();
+    }
+
+    router.push('/checkout');
+  };
   // (Removed duplicate addToCartHandler; using the unified version above)
 
   // quantity change
@@ -366,7 +449,7 @@ const DetailOne: React.FC<DetailOneProps> = ({
 
       {/* Variations & Cart */}
       {Array.isArray(productData.variants) && productData.variants.length > 0 ? (
-        <div className="product-form product-variations mt-3">
+        <div className="product-variations mt-3">
           {colors.length > 0 && (
             <div className="product-form product-color">
               <label>Color:</label>
@@ -459,6 +542,13 @@ const DetailOne: React.FC<DetailOneProps> = ({
           >
             <i className="d-icon-bag" />
             Add to Cart
+          </button>
+          <button
+            className={`btn-product btn-primary text-normal ls-normal font-weight-semi-bold ml-2 ${cartActive ? '' : 'disabled'}`}
+            onClick={buyNowHandler}
+            aria-label="Buy Now"
+          >
+            Buy Now
           </button>
         </div>
       </div>

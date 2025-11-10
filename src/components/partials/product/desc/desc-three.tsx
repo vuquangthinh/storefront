@@ -3,10 +3,14 @@
 import React from 'react';
 import { Tabs, Tab, TabList, TabPanel } from 'react-tabs';
 
-import ALink from '~/components/features/custom-link';
-
-import { toDecimal } from '~/utils';
 import SizeGuide from './size-guide';
+
+// // import 'react-tabs/style/react-tabs.css';
+
+// const Tabs = React.lazy(() => import('react-tabs').then((mod) => ({ default: mod.Tabs })));
+// const Tab = React.lazy(() => import('react-tabs').then((mod) => ({ default: mod.Tab })));
+// const TabList = React.lazy(() => import('react-tabs').then((mod) => ({ default: mod.TabList })));
+// const TabPanel = React.lazy(() => import('react-tabs').then((mod) => ({ default: mod.TabPanel })));
 
 // ---------- Types ----------
 interface VariantSize {
@@ -38,6 +42,7 @@ interface ProductData {
   categories: Category[];
   brands: Brand[];
   variants: ProductVariant[];
+  content?: string;
 }
 
 interface DescThreeProps {
@@ -77,109 +82,103 @@ export default function DescThree({ product, isGuide = false }: DescThreeProps) 
   };
 
   return (
-    <Tabs className="tab tab-nav-simple product-tabs mb-4 mt-4" selectedTabClassName="show" selectedTabPanelClassName="active" defaultIndex={0}>
-      <TabList className="nav nav-tabs justify-content-center" role="tablist">
-        {/* <Tab className="nav-item">
-          <span className="nav-link">Description</span>
-        </Tab> */}
-        <Tab className="nav-item">
-          <span className="nav-link">Additional information</span>
-        </Tab>
-        {isGuide ? (
+    <React.Suspense fallback={<div role="status" aria-live="polite" className="tab-loading">Loading tabs…</div>}>
+      <Tabs className="tab tab-nav-simple product-tabs mb-4 mt-4" selectedTabClassName="show" selectedTabPanelClassName="active" defaultIndex={0}>
+        <TabList className="nav nav-tabs justify-content-center" role="tablist">
+          <Tab className="nav-item">
+            <span className="nav-link">Description</span>
+          </Tab>
+          <Tab className="nav-item">
+            <span className="nav-link">Additional information</span>
+          </Tab>
           <Tab className="nav-item">
             <span className="nav-link">Size Guide</span>
           </Tab>
-        ) : (
-          ''
-        )}
-      </TabList>
+        </TabList>
 
-      <div className="tab-content">
-        {/* <TabPanel className="tab-pane product-tab-description">
-          <div className="row">
-            <div className="col-12 mb-8">
-              <p className="mb-6">
-                Praesent id enim sit amet.Tdio vulputate eleifend in in tortor. ellus massa. siti iMassa ristique sit amet condim vel, facilisis quimequistiqutiqu amet condim Dilisis Facilisis quis sapien. Praesent id enim sit amet.</p>
-              <ul className="mb-6">
-                <li>Praesent id enim sit amet.Tdio vulputate</li>
-                <li>Eleifend in in tortor. ellus massa.Dristique sitii</li>
-                <li>Massa ristique sit amet condim vel</li>
-                <li>Dilisis Facilisis quis sapien. Praesent id enim sit amet</li>
-              </ul>
-              <p className="mb-0">Praesent id enim sit amet odio vulputate eleifend in in tortor. Sellus massa, tristique sitiismonec tellus massa, tristique sit amet condim vel, facilisis quimequistiqutiqu amet condim vel, facilisis Facilisis quis sapien. Praesent id enim sit amet odio vulputate odio vulputate eleifend in in tortor. Sellus massa, tristique sitiismonec tellus massa, tristique sit ametcdimel,facilisis quimequistiqutiqu amet condim vel, facilisis Facilisis sit amet odio vulputate</p>
+        {/* <div className="tab-content"> */}
+          <TabPanel className="tab-pane product-tab-description">
+            <div className="row">
+              <div className="col-12 mb-8">
+                {product.content ? (
+                  <div className="content">
+                    <p>{product.content}</p>
+                  </div>
+                ) : (
+                  ''
+                )}
+              </div>
             </div>
-          </div>
-        </TabPanel> */}
+          </TabPanel>
 
-        <TabPanel className="tab-pane product-tab-additional">
-          <ul className="list-none">
-            {product.categories.length > 0 ? (
-              <li>
-                <label>Categories:</label>
-                <p>
-                  {product.categories.map((item, index) => (
-                    <React.Fragment key={item.name + '-' + index}>
-                      {item.name}
-                      {index < product.categories.length - 1 ? ', ' : ''}
-                    </React.Fragment>
-                  ))}
-                </p>
-              </li>
-            ) : (
-              ''
-            )}
+          <TabPanel className="tab-pane product-tab-additional">
+            <ul className="list-none">
+              {product.categories.length > 0 ? (
+                <li>
+                  <label>Categories:</label>
+                  <p>
+                    {product.categories.map((item, index) => (
+                      <React.Fragment key={item.name + '-' + index}>
+                        {item.name}
+                        {index < product.categories.length - 1 ? ', ' : ''}
+                      </React.Fragment>
+                    ))}
+                  </p>
+                </li>
+              ) : (
+                ''
+              )}
 
-            {product.brands.length > 0 ? (
-              <li>
-                <label>Brands:</label>
-                <p>
-                  {product.brands.map((item, index) => (
-                    <React.Fragment key={item.name + '-' + index}>
-                      {item.name}
-                      {index < product.brands.length - 1 ? ', ' : ''}
-                    </React.Fragment>
-                  ))}
-                </p>
-              </li>
-            ) : (
-              ''
-            )}
+              {product.brands.length > 0 ? (
+                <li>
+                  <label>Brands:</label>
+                  <p>
+                    {product.brands.map((item, index) => (
+                      <React.Fragment key={item.name + '-' + index}>
+                        {item.name}
+                        {index < product.brands.length - 1 ? ', ' : ''}
+                      </React.Fragment>
+                    ))}
+                  </p>
+                </li>
+              ) : (
+                ''
+              )}
 
-            {colors.length > 0 ? (
-              <li>
-                <label>Color:</label>
-                <p>
-                  {colors.map((item, index) => (
-                    <React.Fragment key={item.name + '-' + index}>
-                      {item.name}
-                      {index < colors.length - 1 ? ', ' : ''}
-                    </React.Fragment>
-                  ))}
-                </p>
-              </li>
-            ) : (
-              ''
-            )}
+              {colors.length > 0 ? (
+                <li>
+                  <label>Color:</label>
+                  <p>
+                    {colors.map((item, index) => (
+                      <React.Fragment key={item.name + '-' + index}>
+                        {item.name}
+                        {index < colors.length - 1 ? ', ' : ''}
+                      </React.Fragment>
+                    ))}
+                  </p>
+                </li>
+              ) : (
+                ''
+              )}
 
-            {sizes.length > 0 ? (
-              <li>
-                <label>Size:</label>
-                <p>
-                  {sizes.map((item, index) => (
-                    <React.Fragment key={item.name + '-' + index}>
-                      {item.name}
-                      {index < sizes.length - 1 ? ', ' : ''}
-                    </React.Fragment>
-                  ))}
-                </p>
-              </li>
-            ) : (
-              ''
-            )}
-          </ul>
-        </TabPanel>
+              {sizes.length > 0 ? (
+                <li>
+                  <label>Size:</label>
+                  <p>
+                    {sizes.map((item, index) => (
+                      <React.Fragment key={item.name + '-' + index}>
+                        {item.name}
+                        {index < sizes.length - 1 ? ', ' : ''}
+                      </React.Fragment>
+                    ))}
+                  </p>
+                </li>
+              ) : (
+                ''
+              )}
+            </ul>
+          </TabPanel>
 
-        {isGuide ? (
           <TabPanel className="tab-pane product-tab-size-guide">
             {/* <figure className="size-image mt-4 mb-4">
               <img src="/images/size_guide.png" alt="Size Guide Image" width="217"
@@ -189,10 +188,8 @@ export default function DescThree({ product, isGuide = false }: DescThreeProps) 
               <SizeGuide />
             </figure>
           </TabPanel>
-        ) : (
-          ''
-        )}
-      </div>
-    </Tabs>
+        {/* </div> */}
+      </Tabs>
+    </React.Suspense>
   );
 }

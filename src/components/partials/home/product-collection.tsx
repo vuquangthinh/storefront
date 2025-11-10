@@ -10,7 +10,7 @@ import { fadeIn, fadeInDownShorter } from '~/utils/data/keyframes';
 import { useQuickview } from '@/context/quickview/QuickviewContext';
 
 function FeaturedCollection(props) {
-    const { products, loading, adClass = "mt-10 pt-6", title = "T‑Shirts", bannerSubTitle = "Winter season's", bannerTitle = "Discover Our Ski<br />Equipments", url = "/images/home/banner/1.jpg", btnAdClass = '' } = props;
+    const {  collectionUrl = '#', products, loading, adClass = "mt-10 pt-6", title = "T‑Shirts", bannerSubTitle = "Winter season's", bannerTitle = "Discover Our Ski<br />Equipments", url = "/images/home/banner/1.jpg", btnAdClass = '' } = props;
     const { openQuickview } = useQuickview();
 
     function removeXSSAttacks(html) {
@@ -32,7 +32,7 @@ function FeaturedCollection(props) {
     return (
         <Reveal keyframes={fadeIn} delay={300} duration={1200} triggerOnce>
             <section className={`product-wrapper container ${adClass}`}>
-                <h2 className="title title-simple text-left with-link">{title}<ALink href="/products">View All Products<i className="d-icon-arrow-right"></i></ALink></h2>
+                <h2 className="title title-simple text-left with-link">{title}<ALink href={collectionUrl}>View All Products<i className="d-icon-arrow-right"></i></ALink></h2>
 
                 <div className="product-grid row gutter-sm">
                     <div className="height-x2">

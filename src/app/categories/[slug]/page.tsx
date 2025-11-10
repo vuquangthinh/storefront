@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import ALink from '~/components/features/custom-link';
-import ProductTwo from '~/components/features/product/product-two';
 import ProductListGrid from '@/components/partials/shop/product-list-grid';
 import SidebarFilterOne from '@/components/partials/shop/sidebar/sidebar-filter-one';
 import ShopBannerDefault from '@/components/partials/shop/banner/shop-banner-default';

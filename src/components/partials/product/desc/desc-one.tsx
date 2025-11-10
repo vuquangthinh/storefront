@@ -1,6 +1,11 @@
 "use client";
 import React, { useState } from 'react';
-import { Tabs, Tab, TabList, TabPanel } from 'react-tabs';
+import dynamic from 'next/dynamic';
+
+const Tabs = dynamic(() => import('react-tabs').then(m => m.Tabs), { ssr: false });
+const Tab = dynamic(() => import('react-tabs').then(m => m.Tab), { ssr: false });
+const TabList = dynamic(() => import('react-tabs').then(m => m.TabList), { ssr: false });
+const TabPanel = dynamic(() => import('react-tabs').then(m => m.TabPanel), { ssr: false });
 
 import ALink from '~/components/features/custom-link';
 import VideoModal from '~/components/features/modals/video-modal';

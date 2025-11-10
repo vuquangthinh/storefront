@@ -9,8 +9,8 @@ function FeaturedCollection(props: { products: any[]; loading?: boolean }) {
   const { products, loading } = props;
   const { openQuickview } = useQuickview();
   return (
-    <section className="product-wrapper container mt-10 pt-6">
-      <h2 className="title title-simple text-left with-link">Featured Products<ALink href="/products">View All Products<i className="d-icon-arrow-right"></i></ALink></h2>
+    <section className="product-wrapper container mt-6 pt-6">
+      <h2 className="title title-simple text-left with-link">Featured Products<ALink href="/categories/trending">View All Products<i className="d-icon-arrow-right"></i></ALink></h2>
       <div className="product-grid row gutter-sm">
         {loading ? (
           <>
